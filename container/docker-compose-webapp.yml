@@ -1,0 +1,60 @@
+version: '3.8'
+
+x-image-cicd-target: &cicdTargetImage
+  build:
+    context: ./cicd
+    dockerfile: Dockerfile-target
+  image: hands-on/ubuntu/cicd/target:latest
+
+services:
+
+  webapp-webui:
+    container_name: webapp-webui
+    hostname: webapp-webui
+    <<: *cicdTargetImage
+    ports:
+      - 8181:8181
+    networks:
+      - internal
+      - external
+    tty: true
+
+  webapp-webapi:
+    container_name: webapp-webapi
+    hostname: webapp-webapi
+    <<: *cicdTargetImage
+    ports:
+      - 8182:8182
+    networks:
+      - internal
+      - external
+    tty: true
+
+  webapp-mysql:
+    hostname: webapp-mysql
+    container_name: webapp-mysql
+    image: mysql:8.0
+    ports:
+      - 3306:3306
+    networks:
+      - internal
+      - external
+    volumes:
+      - ./mysql/config/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./mysql/init:/docker-entrypoint-initdb.d
+    command: mysqld
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASS}
+      TZ: "Asia/Tokyo"
+
+networks:
+  internal:
+    name: intra-net
+    driver: bridge
+    internal: true
+  external:
+    name: hands-net
+    driver: bridge

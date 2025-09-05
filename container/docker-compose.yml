@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+
+  gitlab:
+    container_name: gitlab
+    hostname: gitlab
+    image: gitlab/gitlab-ce:18.2.4-ce.0
+    restart: always
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://localhost:13000'
+    volumes:
+      - gitlab-config:/etc/gitlab'
+      - gitlab-logs:/var/log/gitlab'
+      - gitlab-data:/var/opt/gitlab'
+    ports:
+      - '13000:13000'
+      - '2022:22'
+    networks:
+      - internal
+      - external
+
+  jenkins:
+    hostname: jenkins
+    container_name: jenkins
+    build:
+      context: ./jenkins
+    image: hands-on/jenkins:latest
+    volumes:
+      - ./jenkins/my-config:/var/jenkins_home/my-config:ro
+    ports:
+      - 8080:8080
+      - 50000:50000
+    networks:
+      - internal
+      - external
+
+  ansible:
+    container_name: ansible
+    hostname: ansible
+    build:
+      context: ./cicd
+      dockerfile: Dockerfile-ansible
+    image: hands-on/ubuntu/cicd/ansible:latest
+    volumes:
+      - ./cicd/ansible/config/ansible.cfg:/etc/ansible/ansible.cfg:ro
+      - ./cicd/ansible/playbook:/root/ansible/playbook:ro
+    networks:
+      - internal
+      - external
+    tty: true
+
+volumes:
+  gitlab-config:
+  gitlab-logs:
+  gitlab-data:
+
+networks:
+  internal:
+    name: intra-net
+    driver: bridge
+    internal: true
+  external:
+    name: hands-net
+    driver: bridge
