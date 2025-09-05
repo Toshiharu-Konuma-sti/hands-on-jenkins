@@ -1,0 +1,68 @@
+
+# please refer to this file in the path /var/jenkins_home/
+
+jenkins:
+  systemMessage: "This Jenkins instance is managed with JCasC. If you want to change settings, you should modify the configuration."
+
+  labelString: "master" # the Built-in node's label
+
+  nodes:
+    - permanent:
+        name: "ansible-node"
+        remoteFS: "/root"
+        numExecutors: 1
+        labelString: "ansible"
+        launcher:
+          ssh:
+            host: "ansible"
+            port: "22"
+            credentialsId: "ansible-node-credential"
+            sshHostKeyVerificationStrategy: "nonVerifyingKeyVerificationStrategy"
+
+tool:
+  gradle:
+    installations:
+    - name: "my-gradle"
+      properties:
+      - installSource:
+          installers:
+          - gradleInstaller:
+              id: "9.0.0"
+  jfrog:
+    installations:
+    - name: "jfrog-cli"
+      properties:
+      - installSource:
+          installers:
+          - "releasesInstaller"
+
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - usernamePassword:
+              scope: GLOBAL
+              id: "ansible-node-credential"
+              username: "root"
+              password: "password"
+          - usernamePassword:
+              scope: GLOBAL
+              id: "artifactory-app-credential"
+              username: "admin"
+              password: "password"
+
+appearance:
+  pipelineGraphView:
+    showGraphOnBuildPage: true
+    showGraphOnJobPage: true
+    showStageDurations: true
+    showStageNames: true
+
+unclassified:
+  jFrogPlatformBuilder:
+    allowHttpConnections: true
+    jfrogInstances:
+    - credentialsConfig:
+        credentialsId: "artifactory-app-credential"
+      serverId: "my-artifactory"
+      url: "http://artifactory:8081"

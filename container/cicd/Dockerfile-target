@@ -1,0 +1,18 @@
+FROM ubuntu:latest
+
+RUN apt-get update && \
+    apt-get install -y sudo && \
+    apt-get install -y openssh-server && \
+    apt-get install -y vim && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
+    sed -i 's/UsePAM yes/UsePAM no/' /etc/ssh/sshd_config
+
+ARG ROOT_PASSWORD="password"
+RUN echo "root:$ROOT_PASSWORD" | chpasswd
+
+RUN mkdir /var/run/sshd
+
+ENTRYPOINT ["/usr/sbin/sshd", "-D"]

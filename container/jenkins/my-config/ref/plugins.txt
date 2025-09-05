@@ -1,0 +1,9 @@
+configuration-as-code
+ssh-credentials
+gitlab-plugin
+pipeline-stage-view
+coverage
+warnings-ng
+javadoc
+generic-tool
+jfrog

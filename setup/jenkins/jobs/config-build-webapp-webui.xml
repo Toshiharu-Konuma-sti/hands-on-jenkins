@@ -1,0 +1,182 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job">
+  <actions>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition"/>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition">
+      <jobProperties/>
+      <triggers/>
+      <parameters/>
+      <options/>
+    </org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction>
+  </actions>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <com.dabsquared.gitlabjenkins.connection.GitLabConnectionProperty plugin="gitlab-plugin">
+      <gitLabConnection></gitLabConnection>
+      <jobCredentialId></jobCredentialId>
+      <useAlternativeCredential>false</useAlternativeCredential>
+    </com.dabsquared.gitlabjenkins.connection.GitLabConnectionProperty>
+    <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+      <triggers>
+        <com.dabsquared.gitlabjenkins.GitLabPushTrigger plugin="gitlab-plugin">
+          <spec></spec>
+          <triggerOnPush>false</triggerOnPush>
+          <triggerToBranchDeleteRequest>false</triggerToBranchDeleteRequest>
+          <triggerOnMergeRequest>false</triggerOnMergeRequest>
+          <triggerOnlyIfNewCommitsPushed>false</triggerOnlyIfNewCommitsPushed>
+          <triggerOnPipelineEvent>false</triggerOnPipelineEvent>
+          <triggerOnAcceptedMergeRequest>true</triggerOnAcceptedMergeRequest>
+          <triggerOnClosedMergeRequest>false</triggerOnClosedMergeRequest>
+          <triggerOnApprovedMergeRequest>false</triggerOnApprovedMergeRequest>
+          <triggerOpenMergeRequestOnPush>never</triggerOpenMergeRequestOnPush>
+          <triggerOnNoteRequest>false</triggerOnNoteRequest>
+          <noteRegex>Jenkins please retry a build</noteRegex>
+          <ciSkip>true</ciSkip>
+          <skipWorkInProgressMergeRequest>true</skipWorkInProgressMergeRequest>
+          <labelsThatForcesBuildIfAdded></labelsThatForcesBuildIfAdded>
+          <setBuildDescription>true</setBuildDescription>
+          <branchFilterType>All</branchFilterType>
+          <includeBranchesSpec></includeBranchesSpec>
+          <excludeBranchesSpec></excludeBranchesSpec>
+          <sourceBranchRegex></sourceBranchRegex>
+          <targetBranchRegex></targetBranchRegex>
+          <secretToken>1234567890abcdefghijklmnopqrstuvwxyz</secretToken>
+          <pendingBuildName></pendingBuildName>
+          <cancelPendingBuildsOnUpdate>false</cancelPendingBuildsOnUpdate>
+        </com.dabsquared.gitlabjenkins.GitLabPushTrigger>
+      </triggers>
+    </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">
+    <script>pipeline{
+    agent{
+        label &apos;master&apos;
+    }
+    tools {
+        jfrog &apos;jfrog-cli&apos;
+        gradle &apos;my-gradle&apos;
+    }
+    environment {
+        GIT_REPO_URL = &apos;http://gitlab:13000/root/webapp-webui.git&apos;
+        JAR_FILE_PATTERN = &apos;build/libs/apisl.handson.grafana.webapp.webui-*-SNAPSHOT.jar&apos;
+        ARTIFACTORY_URL = &apos;http://artifactory:8081/artifactory&apos;
+        ARTIFACTORY_REPO = &apos;hands-on-webapp-webui&apos;
+    }
+    stages{
+//        stage(&quot;Clean up a local environment&quot;){
+//            steps{
+//                echo &quot;### START: clean up the cloned directoy&quot;
+//                deleteDir()
+//            }
+//        }
+        stage(&quot;Checkout a repository from GitLab&quot;){
+            steps{
+               echo &quot;### START: clone a repository from GitLab&quot;
+               git branch: &apos;main&apos;, url: &quot;${env.GIT_REPO_URL}&quot;
+            }
+        }
+        stage(&apos;Build with JFrog CLI&apos;) {
+            steps {
+                echo &quot;### START: build with jfrog cli&quot;
+                jf &apos;gradle-config --repo-deploy ${ARTIFACTORY_REPO}&apos;
+                jf &quot;rt gradle build -x test -x check --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
+            }
+        }
+        stage(&quot;Run Unit Tests&quot;){
+            steps{
+                echo &quot;### START: run unit tests&quot;
+                sh &quot;./gradlew test -x check --info&quot;
+            }
+            post {
+                always {
+                    junit &apos;build/test-results/test/*.xml&apos;
+                }
+            }
+        }
+        stage(&quot;Analyze test codes coverage&quot;){
+            steps{
+                echo &quot;### START: analyze a test code coverage&quot;
+                sh &quot;./gradlew jacocoTestReport --info&quot;
+            }
+            post {
+                always {
+                    recordCoverage(
+                        tools: [[parser: &apos;JACOCO&apos;, pattern: &apos;build/reports/jacoco/test/jacocoTestReport.xml&apos;]],
+                        id: &apos;jacoco&apos;, name: &apos;JaCoCo Coverage&apos;,
+                        sourceCodeRetention: &apos;EVERY_BUILD&apos;,
+                        qualityGates: [
+                            [threshold: 60.0, metric: &apos;LINE&apos;, baseline: &apos;PROJECT&apos;, unstable: true],
+                            [threshold: 60.0, metric: &apos;BRANCH&apos;, baseline: &apos;PROJECT&apos;, unstable: true]]
+                    )
+                }
+            }
+        }
+        stage(&quot;Analyze codes with Checkstyle&quot;){
+            steps{
+                echo &quot;### START: analyze codes with checkstyle&quot;
+                sh &quot;./gradlew checkstyleMain checkstyleTest --info&quot;
+            }
+            post {
+                always {
+                    recordIssues tools: [
+                        checkStyle(pattern: &apos;build/reports/checkstyle/&apos;)
+                    ]
+                }
+            }
+        }
+        stage(&quot;Analyze codes with PMD&quot;){
+            steps{
+                echo &quot;### START: analyze codes with pmd&quot;
+                sh &quot;./gradlew pmdMain pmdTest --info&quot;
+            }
+            post {
+                always {
+                    recordIssues tools: [
+                        pmdParser(pattern: &apos;build/reports/pmd/*.xml&apos;)
+                    ]
+                }
+            }
+        }
+        stage(&apos;Generate a Javadoc&apos;) {
+            steps {
+                echo &quot;### START: generate a javadoc&quot;
+                sh &apos;./gradlew javadoc&apos;
+            }
+        }
+        stage(&apos;Publish a Javadoc&apos;) {
+            steps {
+                echo &quot;### START: publish a javadoc using javadoc plugin&quot;
+                javadoc javadocDir: &apos;build/docs/javadoc&apos;, keepAll: true
+            }
+        }
+        stage(&apos;Release an artifact to Artifactory&apos;) {
+            steps {
+                echo &quot;### START: release an artifact to artifactory&quot;
+                jf &apos;rt u ${JAR_FILE_PATTERN} ${ARTIFACTORY_REPO}&apos;
+            }
+        }
+        stage(&apos;Publish a build info to Artifactory&apos;) {
+            steps {
+                echo &quot;### START: publish a build info to Artifactory&quot;
+                jf &quot;rt build-publish ${ARTIFACTORY_REPO} ${BUILD_NUMBER}&quot;
+            }
+        }
+    }
+    post{
+        always{
+            echo &quot;========always========&quot;
+        }
+        success{
+            echo &quot;========pipeline executed successfully ========&quot;
+        }
+        failure{
+            echo &quot;========pipeline execution failed========&quot;
+        }
+    }
+}</script>
+    <sandbox>true</sandbox>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>
