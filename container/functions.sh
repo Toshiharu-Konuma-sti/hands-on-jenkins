@@ -362,8 +362,8 @@ show_password()
 	PW_GL=$(docker container exec gitlab cat /etc/gitlab/initial_root_password | grep "^Password" | sed -e "s/^Password: //g")
 	cat << EOS
 - Password:
- - Jenkins Default: $PW_JK
- - GitLab root user: $PW_GL
+  - Jenkins Default: $PW_JK
+  - GitLab root user: $PW_GL
 EOS
 }
 # }}}
@@ -372,10 +372,10 @@ EOS
 show_information()
 {
 	echo "- Setup Instructions:"
-	echo " 1. Access Jenkins and apply JCasC: \e[4m/var/jenkins_home/my-config/jcasc/jenkins.yaml\e[m"
-	echo " 2. Access Artifactory and create repositories: \e[4mhands-on-webapp-webui\e[m and \e[4mhands-on-webapp-webapi\e[m"
-	echo " 3. Run the setup script: \e[4msetup/SETUP_HANDS-ON.sh\e[m"
-	echo " 4. Run the coding preparation script: \e[4mtry-my-hand/PREPARE_CODING.sh\e[m"
+	echo "  1. Access Jenkins and apply JCasC: \e[4m/var/jenkins_home/my-config/jcasc/jenkins.yaml\e[m"
+	echo "  2. Access Artifactory and create repositories: \e[4mhands-on-webapp-webui\e[m and \e[4mhands-on-webapp-webapi\e[m"
+	echo "  3. Run the setup script: \e[4msetup/SETUP_HANDS-ON.sh\e[m"
+	echo "  4. Run the coding preparation script: \e[4mtry-my-hand/PREPARE_CODING.sh\e[m"
 	echo ""
 }
 # // }}}
