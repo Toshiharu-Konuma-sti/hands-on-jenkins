@@ -52,14 +52,15 @@ loop_curl_until_success()
 	CMD_CURL=$1
 	echo "$CMD_CURL" >&2
 	BODY_CURL=""
+	WAIT_SEC=5
 	while true; do
 		BODY_CURL=$(eval $CMD_CURL)
 		if [ $? -eq 0 ]; then
 			echo "-> result: connection successful." >&2
 			break
 		else
-			echo "-> result: connection failed. will try again in 3 seconds." >&2
-			sleep 3
+			echo "-> result: connection failed. will try again in $WAIT_SEC seconds." >&2
+			sleep $WAIT_SEC
 		fi
 	done
 	echo "$BODY_CURL" >&2
@@ -373,7 +374,7 @@ show_information()
 {
 	echo "- Setup Instructions:"
 	echo "  1. Access Jenkins and apply JCasC: \e[4m/var/jenkins_home/my-config/jcasc/jenkins.yaml\e[m"
-	echo "  2. Access Artifactory and create repositories: \e[4mhands-on-webapp-webui\e[m and \e[4mhands-on-webapp-webapi\e[m"
+	echo "  2. Access Artifactory and create repositories: \e[4mhands-on-webapp-webapi\e[m and \e[4mhands-on-webapp-webui\e[m"
 	echo "  3. Run the setup script: \e[4msetup/SETUP_HANDS-ON.sh\e[m"
 	echo "  4. Run the coding preparation script: \e[4mtry-my-hand/PREPARE_CODING.sh\e[m"
 	echo ""
