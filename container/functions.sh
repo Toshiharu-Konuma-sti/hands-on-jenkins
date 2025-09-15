@@ -155,7 +155,6 @@ join_to_network()
 {
 	docker network connect hands-net artifactory
 	docker network connect intra-net artifactory
-	docker network connect hands-net postgresql
 	docker network connect intra-net postgresql
 }
 # }}}
