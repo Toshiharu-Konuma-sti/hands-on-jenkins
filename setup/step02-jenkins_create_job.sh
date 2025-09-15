@@ -17,12 +17,12 @@ wget -O $JK_CLI_PATH http://$JK_HOST_EXT/jnlpJars/$JK_CLI_JAR
 echo "\n### START: create build jobs to Jenkins"
 
 for MY_PROJ in $WEBAPP_PROJECTS; do
-	java -jar $JK_CLI_PATH -s http://$JK_HOST_EXT/ -auth $JK_USER:$JK_PASS create-job build-$MY_PROJ < ./jenkins/jobs/config-build-$MY_PROJ.xml
+	java -jar $JK_CLI_PATH -s http://$JK_HOST_EXT/ -auth $JK_USER:$JK_PASS create-job build-$MY_PROJ < $CUR_DIR/jenkins/jobs/config-build-$MY_PROJ.xml
 done
 
 echo "\n### START: create deploy job to Jenkins"
 
-java -jar $JK_CLI_PATH -s http://$JK_HOST_EXT/ -auth $JK_USER:$JK_PASS create-job deploy-webapp < ./jenkins/jobs/config-deploy-webapp.xml
+java -jar $JK_CLI_PATH -s http://$JK_HOST_EXT/ -auth $JK_USER:$JK_PASS create-job deploy-webapp < $CUR_DIR/jenkins/jobs/config-deploy-webapp.xml
 
 echo "\n### START: remove a jenkins cli"
 

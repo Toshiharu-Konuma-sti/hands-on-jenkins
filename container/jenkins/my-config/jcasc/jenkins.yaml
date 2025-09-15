@@ -30,11 +30,18 @@ tool:
               id: "9.0.0"
   jfrog:
     installations:
-    - name: "jfrog-cli"
+    - name: "my-jfrog-cli"
       properties:
       - installSource:
           installers:
           - "releasesInstaller"
+
+appearance:
+  pipelineGraphView:
+    showGraphOnBuildPage: true
+    showGraphOnJobPage: true
+    showStageDurations: true
+    showStageNames: true
 
 credentials:
   system:
@@ -50,13 +57,6 @@ credentials:
               id: "artifactory-app-credential"
               username: "admin"
               password: "password"
-
-appearance:
-  pipelineGraphView:
-    showGraphOnBuildPage: true
-    showGraphOnJobPage: true
-    showStageDurations: true
-    showStageNames: true
 
 unclassified:
   jFrogPlatformBuilder:

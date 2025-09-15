@@ -54,7 +54,7 @@
         label &apos;master&apos;
     }
     tools {
-        jfrog &apos;jfrog-cli&apos;
+        jfrog &apos;my-jfrog-cli&apos;
         gradle &apos;my-gradle&apos;
     }
     environment {

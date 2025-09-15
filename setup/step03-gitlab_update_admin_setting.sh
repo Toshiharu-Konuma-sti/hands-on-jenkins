@@ -18,7 +18,7 @@ echo "\n### START: update values of the admin settings in GitLab"
 
 CMD_SETUP="curl -v -f -X PUT
 	-H \"Authorization: Bearer $GL_TOKEN\"
-	\"http://$GL_HOST/api/v4/application/settings?auto_devops_enabled=false&allow_local_requests_from_hooks_and_services=true&allow_local_requests_from_hooks_and_services=true&import_sources=gitlab_project\""
+	\"http://$GL_HOST/api/v4/application/settings?import_sources=gitlab_project&auto_devops_enabled=false&allow_local_requests_from_web_hooks_and_services=true\""
 
 GL_BODY=$(loop_curl_until_success "$CMD_SETUP")
 
