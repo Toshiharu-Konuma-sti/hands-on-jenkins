@@ -72,3 +72,9 @@
       async: 1
       poll: 0
       changed_when: true
+      environment:
+        PYROSCOPE_APPLICATION_NAME: webapp-webui
+        PYROSCOPE_SERVER_ADDRESS: http://alloy:9999
+        PYROSCOPE_FORMAT: jfr
+        PYROSCOPE_PROFILER_ALLOC: 512k
+        PYROSCOPE_PROFILER_LOCK: 10ms
