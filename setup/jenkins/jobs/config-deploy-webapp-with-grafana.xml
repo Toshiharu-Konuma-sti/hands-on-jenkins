@@ -1,0 +1,76 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job">
+  <actions>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition"/>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition">
+      <jobProperties/>
+      <triggers/>
+      <parameters/>
+      <options/>
+    </org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction>
+  </actions>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <com.dabsquared.gitlabjenkins.connection.GitLabConnectionProperty plugin="gitlab-plugin">
+      <gitLabConnection></gitLabConnection>
+      <jobCredentialId></jobCredentialId>
+      <useAlternativeCredential>false</useAlternativeCredential>
+    </com.dabsquared.gitlabjenkins.connection.GitLabConnectionProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">
+    <script>pipeline{
+    agent{
+        label &apos;ansible&apos;
+    }
+    stages{
+        stage(&apos;Set up a credential to an environment variable&apos;) {
+            steps{
+                script{
+                    echo &quot;### START: setting up a credential to an environment variable&quot;
+                    withCredentials([
+                        usernamePassword(
+                            credentialsId: &apos;artifactory-app-credential&apos;,
+                            usernameVariable: &apos;ARTIFACTORY_USERNAME&apos;,
+                            passwordVariable: &apos;ARTIFACTORY_PASSWORD&apos;)
+                    ]){
+                        try{
+                            env.ARTIFACTORY_USERNAME = &quot;${ARTIFACTORY_USERNAME}&quot;
+                            env.ARTIFACTORY_PASSWORD = &quot;${ARTIFACTORY_PASSWORD}&quot;
+                        } catch(Exception e){
+                            error &quot;setting up a credential failed: ${e.message}&quot;
+                        }
+                    }
+                }
+            }
+        }
+        stage(&apos;Run Ansible Playbook on Ansible Agent to webapi&apos;) {
+            steps{
+                echo &quot;### START: running ansible playbook for grafana environment on ansible node to webapi&quot;
+                sh &apos;ansible-playbook -i /root/ansible/playbook/inventory_webapi.ini /root/ansible/playbook/deploy_webapi-with-grafana.yml&apos;
+            }
+        }
+        stage(&apos;Run Ansible Playbook on Ansible Agent to webui&apos;) {
+            steps{
+                echo &quot;### START: running ansible playbook for grafana environment on ansible node to webui&quot;
+                sh &apos;ansible-playbook -i /root/ansible/playbook/inventory_webui.ini /root/ansible/playbook/deploy_webui-with-grafana.yml&apos;
+            }
+        }
+    }
+    post{
+        always{
+            echo &quot;========always========&quot;
+        }
+        success{
+            echo &quot;========pipeline executed successfully ========&quot;
+        }
+        failure{
+            echo &quot;========pipeline execution failed========&quot;
+        }
+    }
+}</script>
+    <sandbox>true</sandbox>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>

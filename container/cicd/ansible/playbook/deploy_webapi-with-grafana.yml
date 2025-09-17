@@ -1,0 +1,74 @@
+- name: Deploy to Docker container
+  hosts: docker_containers
+  become: yes
+  vars:
+    jar_base: "apisl.handson.grafana.webapp.webapi"
+    jar_version: "0.0.1-SNAPSHOT"
+    jar_file: "{{ jar_base }}-{{ jar_version }}.jar"
+    app_name: "webapp-webapi"
+    app_dir: "/opt/{{ app_name }}"
+    java_home: "/usr"
+    # --- Pyroscope Download Settings ---
+    pscope_jar_url: "https://github.com/grafana/pyroscope-java/releases/download/v2.0.0"
+    pscope_jar_file: "pyroscope.jar"
+    # --- Artifactory (or other repository) Download Settings ---
+    artifactory_url: "http://artifactory:8081/artifactory/hands-on-{{ app_name }}/build/libs"
+    artifactory_username: "{{ lookup('env', 'ARTIFACTORY_USERNAME') }}"
+    artifactory_password: "{{ lookup('env', 'ARTIFACTORY_PASSWORD') }}"
+
+  tasks:
+    - name: Debug environment variables
+      ansible.builtin.debug:
+        msg: |
+          user1: {{ lookup('env', 'ARTIFACTORY_USERNAME') }}
+          user2: {{ artifactory_username }}
+          pass1: {{ lookup('env', 'ARTIFACTORY_PASSWORD') }}
+          pass2: {{ artifactory_password }}
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Stop existing application process if running
+      ansible.builtin.shell: |
+        pkill -f "{{ jar_base }}" || true
+      register: pkill_result
+      changed_when: pkill_result.rc == 0
+      failed_when: false
+
+    - name: Install OpenJDK
+      ansible.builtin.apt:
+        name: openjdk-21-jdk-headless
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Create application directory
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Download JAR file for Pyroscope
+      ansible.builtin.get_url:
+        url: "{{ pscope_jar_url }}/{{ pscope_jar_file }}"
+        dest: "{{ app_dir }}/{{ pscope_jar_file }}"
+        mode: '0644'
+
+    - name: Download JAR file from Artifactory
+      ansible.builtin.get_url:
+        url: "{{ artifactory_url }}/{{ jar_file }}"
+        dest: "{{ app_dir }}/{{ jar_file }}"
+        username: "{{ artifactory_username }}"
+        password: "{{ artifactory_password }}"
+        mode: '0644'
+        validate_certs: no
+
+    - name: Start Spring Boot application
+      ansible.builtin.shell: |
+        {{ java_home }}/bin/java -javaagent:{{ app_dir }}/{{ pscope_jar_file }} -jar {{ app_dir }}/{{ jar_file }} > /proc/1/fd/1 2>/proc/1/fd/2 &
+      args:
+        chdir: "{{ app_dir }}"
+      async: 1
+      poll: 0
+      changed_when: true
