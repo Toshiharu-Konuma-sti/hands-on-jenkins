@@ -1,0 +1,8 @@
+- name: Start Spring Boot application
+  ansible.builtin.shell: |
+    {{ java_home }}/bin/java -jar {{ app_dir }}/{{ jar_file }} --management.otlp.metrics.export.enabled=false --otel.sdk.disabled=true > /proc/1/fd/1 2>/proc/1/fd/2 &
+  args:
+    chdir: "{{ app_dir }}"
+  async: 1
+  poll: 0
+  changed_when: true

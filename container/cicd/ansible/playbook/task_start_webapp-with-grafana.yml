@@ -1,0 +1,14 @@
+- name: Start Spring Boot application
+  ansible.builtin.shell: |
+    {{ java_home }}/bin/java -javaagent:{{ app_dir }}/{{ pscope_jar_file }} -jar {{ app_dir }}/{{ jar_file }} > /proc/1/fd/1 2>/proc/1/fd/2 &
+  args:
+    chdir: "{{ app_dir }}"
+  async: 1
+  poll: 0
+  changed_when: true
+  environment:
+    PYROSCOPE_APPLICATION_NAME: "{{ app_name }}"
+    PYROSCOPE_SERVER_ADDRESS: http://alloy:9999
+    PYROSCOPE_FORMAT: jfr
+    PYROSCOPE_PROFILER_ALLOC: 512k
+    PYROSCOPE_PROFILER_LOCK: 10ms
