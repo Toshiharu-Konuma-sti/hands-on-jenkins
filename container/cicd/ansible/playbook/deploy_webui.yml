@@ -1,17 +1,14 @@
 - name: Deploy to Docker container
   hosts: docker_containers
   become: yes
+
+  vars_files:
+    vars_common.yml
+
   vars:
     jar_base: "apisl.handson.grafana.webapp.webui"
     jar_version: "0.0.1-SNAPSHOT"
-    jar_file: "{{ jar_base }}-{{ jar_version }}.jar"
     app_name: "webapp-webui"
-    app_dir: "/opt/{{ app_name }}"
-    java_home: "/usr"
-    # --- Artifactory (or other repository) Download Settings ---
-    artifactory_url: "http://artifactory:8081/artifactory/hands-on-{{ app_name }}/build/libs"
-    artifactory_username: "{{ lookup('env', 'ARTIFACTORY_USERNAME') }}"
-    artifactory_password: "{{ lookup('env', 'ARTIFACTORY_PASSWORD') }}"
 
   tasks:
     - name: Import the main task

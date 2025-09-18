@@ -1,0 +1,13 @@
+# --- Web Application Settings ---
+jar_file: "{{ jar_base }}-{{ jar_version }}.jar"
+app_dir: "/opt/{{ app_name }}"
+java_home: "/usr"
+
+# --- Download Settings for Artifactory ---
+artifactory_url: "http://artifactory:8081/artifactory/hands-on-{{ app_name }}/build/libs"
+artifactory_username: "{{ lookup('env', 'ARTIFACTORY_USERNAME') }}"
+artifactory_password: "{{ lookup('env', 'ARTIFACTORY_PASSWORD') }}"
+
+# --- Download Settings for Pyroscope ---
+pscope_jar_url: "https://github.com/grafana/pyroscope-java/releases/download/v2.0.0"
+pscope_jar_file: "pyroscope.jar"
