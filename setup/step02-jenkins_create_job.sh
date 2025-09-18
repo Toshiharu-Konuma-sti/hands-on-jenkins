@@ -23,6 +23,7 @@ done
 echo "\n### START: create deploy job to Jenkins"
 
 java -jar $JK_CLI_PATH -s http://$JK_HOST_EXT/ -auth $JK_USER:$JK_PASS create-job deploy-webapp < $CUR_DIR/jenkins/jobs/config-deploy-webapp.xml
+java -jar $JK_CLI_PATH -s http://$JK_HOST_EXT/ -auth $JK_USER:$JK_PASS create-job deploy-webapp-with-grafana < $CUR_DIR/jenkins/jobs/config-deploy-webapp-with-grafana.xml
 
 echo "\n### START: remove a jenkins cli"
 

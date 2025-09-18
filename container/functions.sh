@@ -379,3 +379,24 @@ show_information()
 	echo ""
 }
 # // }}}
+
+# {{{ show_usage()
+show_usage()
+{
+	cat << EOS
+Usage: $(basename $0) [options]
+
+Start the containers needed for the hands-on. If there are any containers
+already running, stop them and remove resources beforehand.
+
+Options:
+  up                    Start the containers.
+  down                  Stop the containers and remove resources.
+  rebuild {container}   Stop the specified container, removes its image, and
+                        restarts it.
+  list                  Show the list of containers.
+  info                  Show the information such as URLs.
+
+EOS
+}
+# }}}

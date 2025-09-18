@@ -8,13 +8,6 @@ CUR_DIR=$(cd $(dirname $0); pwd)
 DWN_DIR=$(prepare_download_dir $CUR_DIR)
 
 case "$1" in
-	"down")
-		clear
-		start_banner
-		destory_container
-		show_list_container
-		finish_banner $S_TIME
-		;;
 	"up")
 		clear
 		start_banner
@@ -31,6 +24,13 @@ case "$1" in
 		join_to_network
 		show_list_container
 		show_url
+		finish_banner $S_TIME
+		;;
+	"down")
+		clear
+		start_banner
+		destory_container
+		show_list_container
 		finish_banner $S_TIME
 		;;
 	"list")
@@ -67,8 +67,7 @@ case "$1" in
 		finish_banner $S_TIME
 		;;
 	*)
-		echo "Usage: $0 [down|up|list|info|rebuild {container}]"
-		echo ""
+		show_usage
 		exit 1
 		;;
 esac

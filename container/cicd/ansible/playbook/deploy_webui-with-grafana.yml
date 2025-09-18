@@ -2,12 +2,15 @@
   hosts: docker_containers
   become: yes
   vars:
-    jar_base: "apisl.handson.grafana.webapp.webapi"
+    jar_base: "apisl.handson.grafana.webapp.webui"
     jar_version: "0.0.1-SNAPSHOT"
     jar_file: "{{ jar_base }}-{{ jar_version }}.jar"
-    app_name: "webapp-webapi"
+    app_name: "webapp-webui"
     app_dir: "/opt/{{ app_name }}"
     java_home: "/usr"
+    # --- Pyroscope Download Settings ---
+    pscope_jar_url: "https://github.com/grafana/pyroscope-java/releases/download/v2.0.0"
+    pscope_jar_file: "pyroscope.jar"
     # --- Artifactory (or other repository) Download Settings ---
     artifactory_url: "http://artifactory:8081/artifactory/hands-on-{{ app_name }}/build/libs"
     artifactory_username: "{{ lookup('env', 'ARTIFACTORY_USERNAME') }}"
@@ -17,5 +20,8 @@
     - name: Import the main task
       ansible.builtin.import_tasks: task_main.yml
 
+    - name: Import a task to download pyroscope
+      ansible.builtin.import_tasks: task_download_pyroscope.yml
+
     - name: Import a task to start webapp
-      ansible.builtin.import_tasks: task_start_webapp.yml
+      ansible.builtin.import_tasks: task_start_webapp-with-grafana.yml

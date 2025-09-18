@@ -1,0 +1,5 @@
+- name: Download JAR file for Pyroscope
+  ansible.builtin.get_url:
+    url: "{{ pscope_jar_url }}/{{ pscope_jar_file }}"
+    dest: "{{ app_dir }}/{{ pscope_jar_file }}"
+    mode: '0644'
