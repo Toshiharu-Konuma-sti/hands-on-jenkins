@@ -188,6 +188,13 @@ rebuild_container()
 }
 # }}}
 
+# {{{ clear_ssh_known_hosts()
+clear_ssh_known_hosts()
+{
+	docker exec ansible sh -c '[ -f ~/.ssh/known_hosts ] && > ~/.ssh/known_hosts'
+}
+# }}}
+
 
 # {{{ get_jfrog_oss_package()
 # $1: the current directory

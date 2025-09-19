@@ -39,6 +39,11 @@ case "$1" in
 		show_list_container
 		finish_banner $S_TIME
 		;;
+	"rebuild")
+		clear
+		rebuild_container $2
+		clear_ssh_known_hosts
+		;;
 	"list")
 		clear
 		show_list_container
@@ -47,10 +52,6 @@ case "$1" in
 		show_url
 		show_password
 		show_information
-		;;
-	"rebuild")
-		clear
-		rebuild_container $2
 		;;
 	"")
 		clear
