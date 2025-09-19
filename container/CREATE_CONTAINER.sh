@@ -26,6 +26,12 @@ case "$1" in
 		show_url
 		finish_banner $S_TIME
 		;;
+	"up-exporter")
+		clear
+		start_banner
+		create_container_exporter
+		finish_banner $S_TIME
+		;;
 	"down")
 		clear
 		start_banner
