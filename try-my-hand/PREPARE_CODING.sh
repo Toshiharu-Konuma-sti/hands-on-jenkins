@@ -17,6 +17,6 @@ echo "\n### START: Clone gitlab repository with branch"
 clone_gitlab_repo_with_branch "$CUR_DIR" "$DWN_DIR" "$WEBAPP_PKG_URL" "$WEBAPP_PROJECTS"
 
 echo "\n### START: Clean up a package for webapp"
-clean_webapp_package $CUR_DIR $DWN_DIR $WEBAPP_PKG_URL
+clean_webapp_package $DWN_DIR $WEBAPP_PKG_URL
 
 finish_banner $S_TIME
