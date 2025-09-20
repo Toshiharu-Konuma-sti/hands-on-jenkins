@@ -136,6 +136,17 @@ create_container()
 }
 # }}}
 
+# {{{ create_container_exporter()
+create_container_exporter()
+{
+	echo "\n### START: Create the node exporter containers ##########"
+	docker-compose \
+		-f docker-compose-webapp.yml \
+		-f docker-compose-webapp-exporter.yml \
+		up -d
+}
+# }}}
+
 # {{{ destory_container()
 destory_container()
 {
@@ -174,6 +185,13 @@ rebuild_container()
 		-f docker-compose-webapp.yml \
 		-f docker-compose-volumes.yaml \
 		up -d -V --build $CONTAINER_NM
+}
+# }}}
+
+# {{{ clear_ssh_known_hosts()
+clear_ssh_known_hosts()
+{
+	docker exec ansible sh -c '[ -f ~/.ssh/known_hosts ] && > ~/.ssh/known_hosts'
 }
 # }}}
 
@@ -391,6 +409,7 @@ already running, stop them and remove resources beforehand.
 
 Options:
   up                    Start the containers.
+  up-exporter           Start the node exporter containers.
   down                  Stop the containers and remove resources.
   rebuild {container}   Stop the specified container, removes its image, and
                         restarts it.

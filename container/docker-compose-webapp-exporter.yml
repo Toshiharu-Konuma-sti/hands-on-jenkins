@@ -1,0 +1,31 @@
+version: '3.8'
+
+x-image-cicd-target: &cicdTargetImage
+  build:
+    context: ./cicd
+    dockerfile: Dockerfile-target
+  image: hands-on/ubuntu/cicd/target:latest
+
+services:
+
+  webapp-webui-node-exporter:
+    hostname: webapp-webui-node-exporter
+    container_name: webapp-webui-node-exporter
+    image: &nodeExpImage prom/node-exporter:v1.9.1
+    pid: "service:webapp-webui"
+    networks:
+      - internal
+
+  webapp-webapi-node-exporter:
+    hostname: webapp-webapi-node-exporter
+    container_name: webapp-webapi-node-exporter
+    image: *nodeExpImage
+    pid: "service:webapp-webapi"
+    networks:
+      - internal
+
+networks:
+  internal:
+    name: intra-net
+    driver: bridge
+    internal: true
