@@ -123,38 +123,44 @@ prepare_download_dir()
 
 
 # {{{ create_container()
+# $1: the current directory
 create_container()
 {
+	CUR_DIR=$1
 	echo "\n### START: Create new containers ##########"
 	docker volume create --name=artifactory_data
 	docker volume create --name=postgres_data
 	docker-compose \
-		-f docker-compose.yml \
-		-f docker-compose-webapp.yml \
-		-f docker-compose-volumes.yaml \
+		-f $CUR_DIR/docker-compose.yml \
+		-f $CUR_DIR/docker-compose-webapp.yml \
+		-f $CUR_DIR/docker-compose-volumes.yaml \
 		up -d -V --remove-orphans
 }
 # }}}
 
 # {{{ create_container_exporter()
+# $1: the current directory
 create_container_exporter()
 {
+	CUR_DIR=$1
 	echo "\n### START: Create the node exporter containers ##########"
 	docker-compose \
-		-f docker-compose-webapp.yml \
-		-f docker-compose-webapp-exporter.yml \
+		-f $CUR_DIR/docker-compose-webapp.yml \
+		-f $CUR_DIR/docker-compose-webapp-exporter.yml \
 		up -d
 }
 # }}}
 
 # {{{ destory_container()
+# $1: the current directory
 destory_container()
 {
+	CUR_DIR=$1
 	echo "\n### START: Destory existing containers ##########"
 	docker-compose \
-		-f docker-compose.yml \
-		-f docker-compose-webapp.yml \
-		-f docker-compose-volumes.yaml \
+		-f $CUR_DIR/docker-compose.yml \
+		-f $CUR_DIR/docker-compose-webapp.yml \
+		-f $CUR_DIR/docker-compose-volumes.yaml \
 		down -v --remove-orphans
 	docker volume rm artifactory_data
 	docker volume rm postgres_data
@@ -171,19 +177,21 @@ join_to_network()
 # }}}
 
 # {{{ rebuild_container()
-# $1: the name of container to rebuild
+# $1: the current directory
+# $2: the name of container to rebuild
 rebuild_container()
 {
-	CONTAINER_NM=$1
+	CUR_DIR=$1
+	CONTAINER_NM=$2
 	echo "\n### START: Rebuild a container ##########"
 	docker stop $CONTAINER_NM
 	IMAGE_NM=$(docker inspect --format='{{.Config.Image}}' $CONTAINER_NM)
 	docker rm $CONTAINER_NM
 	docker rmi $IMAGE_NM
 	docker-compose \
-		-f docker-compose.yml \
-		-f docker-compose-webapp.yml \
-		-f docker-compose-volumes.yaml \
+		-f $CUR_DIR/docker-compose.yml \
+		-f $CUR_DIR/docker-compose-webapp.yml \
+		-f $CUR_DIR/docker-compose-volumes.yaml \
 		up -d -V --build $CONTAINER_NM
 }
 # }}}
@@ -191,6 +199,7 @@ rebuild_container()
 # {{{ clear_ssh_known_hosts()
 clear_ssh_known_hosts()
 {
+	echo "\n### START: Clear the know_hosts file for ssh ##########"
 	docker exec ansible sh -c '[ -f ~/.ssh/known_hosts ] && > ~/.ssh/known_hosts'
 }
 # }}}
@@ -208,6 +217,7 @@ get_jfrog_oss_package()
 	PKG_URL=$3
 	PKG_PTN=$4
 	PKG_PATH=$DWN_DIR/$PKG_PTN
+	echo "\n### START: Get JFrog OSS package ##########"
 	curl -LO --output-dir $DWN_DIR $PKG_URL
 	tar -zxvf $PKG_PATH -C $DWN_DIR
 }
@@ -222,6 +232,7 @@ prepare_jfrog_oss_files()
 	CUR_DIR=$1
 	DWN_DIR=$2
 	DIR_PTN=$3
+	echo "\n### START: Prepare JFrog OSS files ##########"
 	cp -f $DWN_DIR/$DIR_PTN/templates/docker-compose-volumes.yaml $CUR_DIR
 	cp -f $DWN_DIR/$DIR_PTN/.env $CUR_DIR
 
@@ -243,6 +254,7 @@ clean_jfrog_oss_package()
 	DWN_DIR=$2
 	PKG_PTN=$3
 	DIR_PTN=$4
+	echo "\n### START: Clean JFrog OSS package ##########"
 	rm -f $DWN_DIR/$PKG_PTN
 	rm -rf $DWN_DIR/$DIR_PTN
 }
@@ -258,6 +270,7 @@ get_webapp_package()
 	CUR_DIR=$1
 	DWN_DIR=$2
 	PKG_URL=$3
+	echo "\n### START: Get webapp package ##########"
 	PKG_FILE=$(basename $PKG_URL)
 	PKG_PATH=$DWN_DIR/$PKG_FILE
 	curl -LO --output-dir $DWN_DIR $PKG_URL
@@ -274,6 +287,7 @@ prepare_webapp_mysql_files()
 	CUR_DIR=$1
 	DWN_DIR=$2
 	PKG_URL="$3"
+	echo "\n### START: Prepare webapp MySQL files ##########"
 	GIT_REPO=$(echo $PKG_URL | cut -d '/' -f 5)
 	GIT_BRANCH=$(basename $PKG_URL | sed 's/\.[^.]*$//')
 
@@ -298,6 +312,7 @@ prepare_gitlab_repo_with_branch()
 	DWN_DIR="$2"
 	PKG_URL="$3"
 	WEBAPP_PROJECTS="$4"
+	echo "\n### START: Prepare GitLab repository and create a brunch ##########"
 	GIT_REPO=$(echo $PKG_URL | cut -d '/' -f 5)
 	GIT_BRANCH=$(basename $PKG_URL | sed "s/\.[^.]*$//")
 
@@ -325,6 +340,7 @@ clean_webapp_package()
 	CUR_DIR=$1
 	DWN_DIR=$2
 	PKG_URL=$3
+	echo "\n### START: Clean webapp package ##########"
 	PKG_FILE=$(basename $PKG_URL)
 	PKG_PATH=$DWN_DIR/$PKG_FILE
 	GIT_REPO=$(echo $PKG_URL | cut -d '/' -f 5)
@@ -365,11 +381,14 @@ EOS
 # {{{ show_command()
 show_command()
 {
-	echo "\n### START: Show the commands to get a password ##########"
-	echo "Enter the command below after each container started."
-	echo "- for GitLab(root):  $ docker container exec gitlab cat /etc/gitlab/initial_root_password"
-	echo "- for Jenkins:       $ docker container exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword"
-	echo ""
+	cat << EOS
+
+### START: Show the commands to get a password ##########
+Enter the command below to get a default password after each container started.
+- for GitLab(root):  $ docker container exec gitlab cat /etc/gitlab/initial_root_password
+- for Jenkins:       $ docker container exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+
+EOS
 }
 # }}}
 
