@@ -12,13 +12,13 @@ case "$1" in
 		clear
 		start_banner
 
-		get_jfrog_oss_package $CUR_DIR $DWN_DIR $ART_PKG_URL $ART_PKG_PTN
+		get_jfrog_oss_package $DWN_DIR $ART_PKG_URL $ART_PKG_PTN
 		prepare_jfrog_oss_files $CUR_DIR $DWN_DIR $ART_DIR_PTN
-		clean_jfrog_oss_package $CUR_DIR $DWN_DIR $ART_PKG_PTN $ART_DIR_PTN
+		clean_jfrog_oss_package $DWN_DIR $ART_PKG_PTN $ART_DIR_PTN
 
-		get_webapp_package $CUR_DIR $DWN_DIR $WEBAPP_PKG_URL
+		get_webapp_package $DWN_DIR $WEBAPP_PKG_URL
 		prepare_webapp_mysql_files $CUR_DIR $DWN_DIR $WEBAPP_PKG_URL
-		clean_webapp_package $CUR_DIR $DWN_DIR $WEBAPP_PKG_URL
+		clean_webapp_package $DWN_DIR $WEBAPP_PKG_URL
 
 		create_container $CUR_DIR
 		join_to_network
@@ -47,6 +47,7 @@ case "$1" in
 		start_banner
 		rebuild_container $CUR_DIR $2
 		clear_ssh_known_hosts
+		show_list_container
 		finish_banner $S_TIME
 		;;
 	"list")
@@ -63,13 +64,13 @@ case "$1" in
 		start_banner
 		destory_container $CUR_DIR
 
-		get_jfrog_oss_package $CUR_DIR $DWN_DIR $ART_PKG_URL $ART_PKG_PTN
+		get_jfrog_oss_package $DWN_DIR $ART_PKG_URL $ART_PKG_PTN
 		prepare_jfrog_oss_files $CUR_DIR $DWN_DIR $ART_DIR_PTN
-		clean_jfrog_oss_package $CUR_DIR $DWN_DIR $ART_PKG_PTN $ART_DIR_PTN
+		clean_jfrog_oss_package $DWN_DIR $ART_PKG_PTN $ART_DIR_PTN
 
-		get_webapp_package $CUR_DIR $DWN_DIR $WEBAPP_PKG_URL
+		get_webapp_package $DWN_DIR $WEBAPP_PKG_URL
 		prepare_webapp_mysql_files $CUR_DIR $DWN_DIR $WEBAPP_PKG_URL
-		clean_webapp_package $CUR_DIR $DWN_DIR $WEBAPP_PKG_URL
+		clean_webapp_package $DWN_DIR $WEBAPP_PKG_URL
 
 		create_container $CUR_DIR
 		join_to_network

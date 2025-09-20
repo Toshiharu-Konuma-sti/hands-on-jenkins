@@ -206,16 +206,14 @@ clear_ssh_known_hosts()
 
 
 # {{{ get_jfrog_oss_package()
-# $1: the current directory
-# $2: the download directory
-# $3: the artifactory package url
-# $4: the artifactory package pattern
+# $1: the download directory
+# $2: the artifactory package url
+# $3: the artifactory package pattern
 get_jfrog_oss_package()
 {
-	CUR_DIR=$1
-	DWN_DIR=$2
-	PKG_URL=$3
-	PKG_PTN=$4
+	DWN_DIR=$1
+	PKG_URL=$2
+	PKG_PTN=$3
 	PKG_PATH=$DWN_DIR/$PKG_PTN
 	echo "\n### START: Get JFrog OSS package ##########"
 	curl -LO --output-dir $DWN_DIR $PKG_URL
@@ -244,16 +242,14 @@ prepare_jfrog_oss_files()
 # }}}
 
 # {{{ clean_jfrog_oss_package()
-# $1: the current directory
-# $2: the download directory
-# $3: the artifactory package pattern
-# $4: the artifactory directory pattern
+# $1: the download directory
+# $2: the artifactory package pattern
+# $3: the artifactory directory pattern
 clean_jfrog_oss_package()
 {
-	CUR_DIR=$1
-	DWN_DIR=$2
-	PKG_PTN=$3
-	DIR_PTN=$4
+	DWN_DIR=$1
+	PKG_PTN=$2
+	DIR_PTN=$3
 	echo "\n### START: Clean JFrog OSS package ##########"
 	rm -f $DWN_DIR/$PKG_PTN
 	rm -rf $DWN_DIR/$DIR_PTN
@@ -262,14 +258,12 @@ clean_jfrog_oss_package()
 
 
 # {{{ get_webapp_package()
-# $1: the current directory
-# $2: the download directory
-# $3: the webapp package url
+# $1: the download directory
+# $2: the webapp package url
 get_webapp_package()
 {
-	CUR_DIR=$1
-	DWN_DIR=$2
-	PKG_URL=$3
+	DWN_DIR=$1
+	PKG_URL=$2
 	echo "\n### START: Get webapp package ##########"
 	PKG_FILE=$(basename $PKG_URL)
 	PKG_PATH=$DWN_DIR/$PKG_FILE
@@ -301,12 +295,12 @@ prepare_webapp_mysql_files()
 }
 # }}}
 
-# {{{ prepare_gitlab_repo_with_branch()
+# {{{ clone_gitlab_repo_with_branch()
 # $1: the current directory
 # $2: the download directory
 # $3: the webapp package url
 # $4: the list of the names of webapp repository
-prepare_gitlab_repo_with_branch()
+clone_gitlab_repo_with_branch()
 {
 	CUR_DIR="$1"
 	DWN_DIR="$2"
@@ -332,14 +326,12 @@ prepare_gitlab_repo_with_branch()
 # }}}
 
 # {{{ clean_webapp_package()
-# $1: the current directory
-# $2: the download directory
-# $3: the webapp package url
+# $1: the download directory
+# $2: the webapp package url
 clean_webapp_package()
 {
-	CUR_DIR=$1
-	DWN_DIR=$2
-	PKG_URL=$3
+	DWN_DIR=$1
+	PKG_URL=$2
 	echo "\n### START: Clean webapp package ##########"
 	PKG_FILE=$(basename $PKG_URL)
 	PKG_PATH=$DWN_DIR/$PKG_FILE
