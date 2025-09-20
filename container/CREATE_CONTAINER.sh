@@ -12,37 +12,43 @@ case "$1" in
 		clear
 		start_banner
 
-		get_jfrog_oss_package $CUR_DIR $DWN_DIR $ART_PKG_URL $ART_PKG_PTN
+		get_jfrog_oss_package $DWN_DIR $ART_PKG_URL $ART_PKG_PTN
 		prepare_jfrog_oss_files $CUR_DIR $DWN_DIR $ART_DIR_PTN
-		clean_jfrog_oss_package $CUR_DIR $DWN_DIR $ART_PKG_PTN $ART_DIR_PTN
+		clean_jfrog_oss_package $DWN_DIR $ART_PKG_PTN $ART_DIR_PTN
 
-		get_webapp_package $CUR_DIR $DWN_DIR $WEBAPP_PKG_URL
+		get_webapp_package $DWN_DIR $WEBAPP_PKG_URL
 		prepare_webapp_mysql_files $CUR_DIR $DWN_DIR $WEBAPP_PKG_URL
-		clean_webapp_package $CUR_DIR $DWN_DIR $WEBAPP_PKG_URL
+		clean_webapp_package $DWN_DIR $WEBAPP_PKG_URL
 
-		create_container
+		create_container $CUR_DIR
 		join_to_network
+
 		show_list_container
 		show_url
+		show_command
 		finish_banner $S_TIME
 		;;
 	"up-exporter")
 		clear
 		start_banner
-		create_container_exporter
+		create_container_exporter $CUR_DIR
+		show_list_container
 		finish_banner $S_TIME
 		;;
 	"down")
 		clear
 		start_banner
-		destory_container
+		destory_container $CUR_DIR
 		show_list_container
 		finish_banner $S_TIME
 		;;
 	"rebuild")
 		clear
-		rebuild_container $2
+		start_banner
+		rebuild_container $CUR_DIR $2
 		clear_ssh_known_hosts
+		show_list_container
+		finish_banner $S_TIME
 		;;
 	"list")
 		clear
@@ -56,18 +62,19 @@ case "$1" in
 	"")
 		clear
 		start_banner
-		destory_container
+		destory_container $CUR_DIR
 
-		get_jfrog_oss_package $CUR_DIR $DWN_DIR $ART_PKG_URL $ART_PKG_PTN
+		get_jfrog_oss_package $DWN_DIR $ART_PKG_URL $ART_PKG_PTN
 		prepare_jfrog_oss_files $CUR_DIR $DWN_DIR $ART_DIR_PTN
-		clean_jfrog_oss_package $CUR_DIR $DWN_DIR $ART_PKG_PTN $ART_DIR_PTN
+		clean_jfrog_oss_package $DWN_DIR $ART_PKG_PTN $ART_DIR_PTN
 
-		get_webapp_package $CUR_DIR $DWN_DIR $WEBAPP_PKG_URL
+		get_webapp_package $DWN_DIR $WEBAPP_PKG_URL
 		prepare_webapp_mysql_files $CUR_DIR $DWN_DIR $WEBAPP_PKG_URL
-		clean_webapp_package $CUR_DIR $DWN_DIR $WEBAPP_PKG_URL
+		clean_webapp_package $DWN_DIR $WEBAPP_PKG_URL
 
-		create_container
+		create_container $CUR_DIR
 		join_to_network
+
 		show_list_container
 		show_url
 		show_command
