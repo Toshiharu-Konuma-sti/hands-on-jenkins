@@ -134,6 +134,7 @@ create_container()
 		-f $CUR_DIR/docker-compose.yml \
 		-f $CUR_DIR/docker-compose-webapp.yml \
 		-f $CUR_DIR/docker-compose-volumes.yaml \
+		-f $CUR_DIR/docker-compose-dependencytrack.yml \
 		up -d -V --remove-orphans
 }
 # }}}
@@ -161,6 +162,7 @@ destory_container()
 		-f $CUR_DIR/docker-compose.yml \
 		-f $CUR_DIR/docker-compose-webapp.yml \
 		-f $CUR_DIR/docker-compose-volumes.yaml \
+		-f $CUR_DIR/docker-compose-dependencytrack.yml \
 		down -v --remove-orphans
 	docker volume rm artifactory_data
 	docker volume rm postgres_data
@@ -170,9 +172,15 @@ destory_container()
 # {{{ join_to_network()
 join_to_network()
 {
+	echo "\n### START: Join to the network ##########"
 	docker network connect hands-net artifactory
 	docker network connect intra-net artifactory
 	docker network connect intra-net postgresql
+	docker network connect hands-net dep-track-apiserver
+	docker network connect hands-net dep-track-frontend
+	docker network connect intra-net dep-track-apiserver
+	docker network connect intra-net dep-track-frontend
+	docker network connect intra-net dep-track-postgres
 }
 # }}}
 
@@ -203,6 +211,64 @@ clear_ssh_known_hosts()
 	docker exec ansible sh -c '[ -f ~/.ssh/known_hosts ] && > ~/.ssh/known_hosts'
 }
 # }}}
+
+
+# $1: url
+# $2: file name
+get_dependencytrack_yaml()
+{
+	YAML_URL=$1
+	YAML_FIL=$2
+	echo "\n### START: Get docker-compose YAML for Dependency-Track ##########"
+	curl -L -o $YAML_FIL $YAML_URL
+}
+
+prepare_deptrack_server_name()
+{
+	YAML_FIL=$1
+	APIS_BEF=$2
+	APIS_AFT=$3
+	FRNT_BEF=$4
+	FRNT_AFT=$5
+	PSQL_BEF=$6
+	PSQL_AFT=$7
+	echo "### START: Replace container names in Dependency-Track's docker-compose YAML"
+	# api server and frontend
+	sed -i \
+		-e "s/^\(\s*\)$APIS_BEF:/\1$APIS_AFT:/" \
+		-e "s/^\(\s*\)$FRNT_BEF:/\1$FRNT_AFT:/" $YAML_FIL
+	# postgresql
+	sed -i \
+		-e "s/^\(\s*\)$PSQL_BEF:/\1$PSQL_AFT:/" \
+		-e "s|//$PSQL_BEF:|//$PSQL_AFT:|" $YAML_FIL
+}
+
+prepare_deptrack_port_number()
+{
+	YAML_FIL=$1
+	APIS_BEF=$2
+	APIS_AFT=$3
+	FRNT_BEF=$4
+	FRNT_AFT=$5
+	echo "### START: Replace the port number exposed to the hosts in Dependency-Track's docker-compose YAML"
+	sed -i \
+		-e "s/$APIS_BEF/$APIS_AFT/g" \
+		-e "s/$FRNT_BEF:/$FRNT_AFT:/g" $YAML_FIL
+}
+
+insert_container_name()
+{
+	YAML_FIL=$1
+	APIS_AFT=$2
+	FRNT_AFT=$3
+	PSQL_AFT=$4
+	echo "### START: Insert the container name in Dependency-Track's docker-compose YAML"
+
+	sed -i "s/^  $APIS_AFT:/  $APIS_AFT:\n    container_name: $APIS_AFT/" $YAML_FIL
+	sed -i "s/^  $FRNT_AFT:/  $FRNT_AFT:\n    container_name: $FRNT_AFT/" $YAML_FIL
+	sed -i "s/^  $PSQL_AFT:/  $PSQL_AFT:\n    container_name: $PSQL_AFT/" $YAML_FIL
+	
+}
 
 
 # {{{ get_jfrog_oss_package()
@@ -360,11 +426,12 @@ show_url()
 /************************************************************
  * Information:
  * - Access to Web ui tools with the URL below.
- *   - Jenkins:     http://localhost:8080/
- *   - Artifactory: http://localhost:8082/
- *   - GitLab:      http://localhost:13000/
+ *   - Jenkins:             http://localhost:8080/
+ *   - Artifactory:         http://localhost:8082/
+ *   - Dependency-Track:    http://localhost:8980/
+ *   - GitLab:              http://localhost:13000/
  * - Access to the deployed webapp with the URL below.
- *   - webapp:      http://localhost:8181/
+ *   - webapp:              http://localhost:8181/
  ***********************************************************/
 EOS
 }
@@ -403,8 +470,9 @@ show_information()
 	echo "- Setup Instructions:"
 	echo "  1. Access Jenkins and apply JCasC: \e[4m/var/jenkins_home/my-config/jcasc/jenkins.yaml\e[m"
 	echo "  2. Access Artifactory and create repositories: \e[4mhands-on-webapp-webapi\e[m and \e[4mhands-on-webapp-webui\e[m"
-	echo "  3. Run the setup script: \e[4msetup/SETUP_HANDS-ON.sh\e[m"
-	echo "  4. Run the coding preparation script: \e[4mtry-my-hand/PREPARE_CODING.sh\e[m"
+	echo "  3. Access Dependency-Track, issue an API-Key and update it to the credential managed in Jenkin."
+	echo "  4. Run the setup script: \e[4msetup/SETUP_HANDS-ON.sh\e[m"
+	echo "  5. Run the coding preparation script: \e[4mtry-my-hand/PREPARE_CODING.sh\e[m"
 	echo ""
 }
 # // }}}

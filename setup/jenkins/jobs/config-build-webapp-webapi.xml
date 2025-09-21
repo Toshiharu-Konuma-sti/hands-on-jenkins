@@ -1,8 +1,8 @@
 <?xml version='1.1' encoding='UTF-8'?>
-<flow-definition plugin="workflow-job@1540.v295eccc9778f">
+<flow-definition plugin="workflow-job">
   <actions>
-    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition@2.2265.v140e610fe9d5"/>
-    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition@2.2265.v140e610fe9d5">
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition"/>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition">
       <jobProperties/>
       <triggers/>
       <parameters/>
@@ -12,14 +12,14 @@
   <description></description>
   <keepDependencies>false</keepDependencies>
   <properties>
-    <com.dabsquared.gitlabjenkins.connection.GitLabConnectionProperty plugin="gitlab-plugin@1.9.8">
+    <com.dabsquared.gitlabjenkins.connection.GitLabConnectionProperty plugin="gitlab-plugin">
       <gitLabConnection></gitLabConnection>
       <jobCredentialId></jobCredentialId>
       <useAlternativeCredential>false</useAlternativeCredential>
     </com.dabsquared.gitlabjenkins.connection.GitLabConnectionProperty>
     <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
       <triggers>
-        <com.dabsquared.gitlabjenkins.GitLabPushTrigger plugin="gitlab-plugin@1.9.8">
+        <com.dabsquared.gitlabjenkins.GitLabPushTrigger plugin="gitlab-plugin">
           <spec></spec>
           <triggerOnPush>false</triggerOnPush>
           <triggerToBranchDeleteRequest>false</triggerToBranchDeleteRequest>
@@ -48,7 +48,7 @@
       </triggers>
     </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
   </properties>
-  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@4183.v94b_6fd39da_c1">
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">
     <script>pipeline{
     agent{
         label &apos;master&apos;
@@ -62,6 +62,8 @@
         JAR_FILE_PATTERN = &apos;build/libs/apisl.handson.grafana.webapp.webapi-*-SNAPSHOT.jar&apos;
         ARTIFACTORY_URL = &apos;http://artifactory:8081/artifactory&apos;
         ARTIFACTORY_REPO = &apos;hands-on-webapp-webapi&apos;
+        SBOM_FILE_PATH = &apos;build/reports/application.cdx.json&apos;
+        DEPENDENCY_TRACK_API_KEY_ID = &apos;dependency-track-api-key&apos;
     }
     stages{
 //        stage(&quot;Clean up a local environment&quot;){
@@ -135,6 +137,23 @@
                     recordIssues tools: [
                         pmdParser(pattern: &apos;build/reports/pmd/*.xml&apos;)
                     ]
+                }
+            }
+        }
+        stage(&apos;Generate SBOM&apos;) {
+            steps {
+                echo &quot;### START: generating SBOM using CycloneDX plugin&quot;
+                sh &apos;./gradlew cyclonedxBom --info&apos;
+            }
+        }
+        stage(&apos;Publish SBOM to Dependency-Track&apos;) {
+            steps {
+                withCredentials([string(credentialsId: &quot;${env.DEPENDENCY_TRACK_API_KEY_ID}&quot;, variable: &apos;API_KEY&apos;)]) {
+                    dependencyTrackPublisher artifact: &quot;${env.SBOM_FILE_PATH}&quot;,
+                    projectName: &quot;${env.ARTIFACTORY_REPO}&quot;,
+                    projectVersion: &quot;${env.BUILD_NUMBER}&quot;,
+                    synchronous: true,
+                    dependencyTrackApiKey: API_KEY
                 }
             }
         }
