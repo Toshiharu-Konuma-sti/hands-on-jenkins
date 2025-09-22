@@ -10,7 +10,7 @@ download/jfrog-artifactory-oss-*-compose.tar.gz
 download/artifactory-oss-*/
 download/*.zip
 download/hands-on-grafana-*/
-download/hands-on-webapp-rolling-dice-*/
+download/hands-on-rollingdice-webapp-*/
 
 try-my-hand/webapp-webui/
 try-my-hand/webapp-webapi/

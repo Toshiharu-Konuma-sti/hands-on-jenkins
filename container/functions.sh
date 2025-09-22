@@ -470,7 +470,7 @@ show_information()
 	echo "- Setup Instructions:"
 	echo "  1. Access Jenkins and apply JCasC: \e[4m/var/jenkins_home/my-config/jcasc/jenkins.yaml\e[m"
 	echo "  2. Access Dependency-Track, issue an API-Key and update it to the credential managed in Jenkin."
-	echo "  3. Access Artifactory and create repositories: \e[4mhands-on-webapp-webapi\e[m and \e[4mhands-on-webapp-webui\e[m"
+	echo "  3. Access Artifactory and create repositories: \e[4mhands-on-rollingdice-webapp-webapi\e[m and \e[4mhands-on-rollingdice-webapp-webui\e[m"
 	echo "  4. Run the setup script: \e[4msetup/SETUP_HANDS-ON.sh\e[m"
 	echo "  5. Run the coding preparation script: \e[4mtry-my-hand/PREPARE_CODING.sh\e[m"
 	echo ""
