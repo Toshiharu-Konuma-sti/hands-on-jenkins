@@ -12,9 +12,9 @@ case "$1" in
 		clear
 		start_banner
 
-		get_jfrog_oss_package $DWN_DIR $ART_PKG_URL $ART_PKG_PTN
-		prepare_jfrog_oss_files $CUR_DIR $DWN_DIR $ART_DIR_PTN
-		clean_jfrog_oss_package $DWN_DIR $ART_PKG_PTN $ART_DIR_PTN
+		get_jfrog_oss_package $DWN_DIR $ARTF_PKG_URL $ARTF_PKG_PTN
+		prepare_jfrog_oss_files $CUR_DIR $DWN_DIR $ARTF_DIR_PTN
+		clean_jfrog_oss_package $DWN_DIR $ARTF_PKG_PTN $ARTF_DIR_PTN
 
 		get_webapp_package $DWN_DIR $WEBAPP_PKG_URL
 		prepare_webapp_mysql_files $CUR_DIR $DWN_DIR $WEBAPP_PKG_URL
@@ -75,9 +75,9 @@ case "$1" in
 		insert_container_name $DEPT_YAML_FIL \
 			$DEPT_APIS_NM_AFT $DEPT_FRNT_NM_AFT $DEPT_PSQL_NM_AFT
 
-		get_jfrog_oss_package $DWN_DIR $ART_PKG_URL $ART_PKG_PTN
-		prepare_jfrog_oss_files $CUR_DIR $DWN_DIR $ART_DIR_PTN
-		clean_jfrog_oss_package $DWN_DIR $ART_PKG_PTN $ART_DIR_PTN
+		get_jfrog_oss_package $DWN_DIR $ARTF_PKG_URL $ARTF_PKG_PTN
+		prepare_jfrog_oss_files $CUR_DIR $DWN_DIR $ARTF_DIR_PTN
+		clean_jfrog_oss_package $DWN_DIR $ARTF_PKG_PTN $ARTF_DIR_PTN
 
 		get_webapp_package $DWN_DIR $WEBAPP_PKG_URL
 		prepare_webapp_mysql_files $CUR_DIR $DWN_DIR $WEBAPP_PKG_URL
