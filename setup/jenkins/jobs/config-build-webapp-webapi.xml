@@ -1,8 +1,8 @@
 <?xml version='1.1' encoding='UTF-8'?>
-<flow-definition plugin="workflow-job@1540.v295eccc9778f">
+<flow-definition plugin="workflow-job">
   <actions>
-    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition@2.2265.v140e610fe9d5"/>
-    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition@2.2265.v140e610fe9d5">
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition"/>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition">
       <jobProperties/>
       <triggers/>
       <parameters/>
@@ -12,14 +12,14 @@
   <description></description>
   <keepDependencies>false</keepDependencies>
   <properties>
-    <com.dabsquared.gitlabjenkins.connection.GitLabConnectionProperty plugin="gitlab-plugin@1.9.8">
+    <com.dabsquared.gitlabjenkins.connection.GitLabConnectionProperty plugin="gitlab-plugin">
       <gitLabConnection></gitLabConnection>
       <jobCredentialId></jobCredentialId>
       <useAlternativeCredential>false</useAlternativeCredential>
     </com.dabsquared.gitlabjenkins.connection.GitLabConnectionProperty>
     <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
       <triggers>
-        <com.dabsquared.gitlabjenkins.GitLabPushTrigger plugin="gitlab-plugin@1.9.8">
+        <com.dabsquared.gitlabjenkins.GitLabPushTrigger plugin="gitlab-plugin">
           <spec></spec>
           <triggerOnPush>false</triggerOnPush>
           <triggerToBranchDeleteRequest>false</triggerToBranchDeleteRequest>
@@ -48,8 +48,17 @@
       </triggers>
     </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
   </properties>
-  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@4183.v94b_6fd39da_c1">
-    <script>pipeline{
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">
+    <script>@NonCPS
+def parseJarName(String jarFileName) {
+    def matcher = jarFileName =~ /^(.*)-(\d+\.\d+\.\d+)-SNAPSHOT\.jar$/
+    if (matcher.matches()) {
+        return [matcher[0][1], matcher[0][2]]
+    }
+    return null
+}
+
+pipeline{
     agent{
         label &apos;master&apos;
     }
@@ -59,9 +68,11 @@
     }
     environment {
         GIT_REPO_URL = &apos;http://gitlab:13000/root/webapp-webapi.git&apos;
-        JAR_FILE_PATTERN = &apos;build/libs/apisl.handson.grafana.webapp.webapi-*-SNAPSHOT.jar&apos;
+        JAR_FILE_PATTERN = &apos;build/libs/apisl.handson.rollingdice.webapp.webapi-*-SNAPSHOT.jar&apos;
         ARTIFACTORY_URL = &apos;http://artifactory:8081/artifactory&apos;
-        ARTIFACTORY_REPO = &apos;hands-on-webapp-webapi&apos;
+        ARTIFACTORY_REPO = &apos;hands-on-rollingdice-webapp-webapi&apos;
+        SBOM_FILE_PATH = &apos;build/reports/application.cdx.json&apos;
+        DEPENDENCY_TRACK_API_KEY_ID = &apos;dependency-track-api-key&apos;
     }
     stages{
 //        stage(&quot;Clean up a local environment&quot;){
@@ -135,6 +146,47 @@
                     recordIssues tools: [
                         pmdParser(pattern: &apos;build/reports/pmd/*.xml&apos;)
                     ]
+                }
+            }
+        }
+        stage(&apos;Generate SBOM&apos;) {
+            steps {
+                echo &quot;### START: generate SBOM using CycloneDX plugin&quot;
+                sh &apos;./gradlew cyclonedxBom --info&apos;
+            }
+        }
+        stage(&apos;Publish SBOM to Dependency-Track&apos;) {
+            steps {
+                echo &quot;### START: publich SBOM to Dependency-Track&quot;
+                script {
+                    // 1. Get the full path of the JAR files that match a pattern.
+                    def jarFilePath = sh(script: &quot;find . -path &apos;./${env.JAR_FILE_PATTERN}&apos;&quot;, returnStdout: true).trim()
+                    if (jarFilePath.isEmpty()) {
+                        error &quot;JAR file not found with pattern: ${env.JAR_FILE_PATTERN}&quot;
+                    }
+                  
+                    // 2. Extract only the file name from the full path.
+                    def jarFileName = sh(script: &quot;basename &apos;${jarFilePath}&apos;&quot;, returnStdout: true).trim()
+                    echo &quot;Found JAR file: ${jarFileName}&quot;
+                    
+                    // 3. Extract project name and version using regular expressions.
+                    def projectInfo = parseJarName(jarFileName)
+                    if (projectInfo == null) {
+                        error &quot;Could not parse project name and version from JAR file: ${jarFileName}&quot;
+                    }
+
+                    def parsedProjectName = projectInfo[0]
+                    def parsedProjectVersion = projectInfo[1]
+                    echo &quot;Parsed Project Name: ${parsedProjectName}&quot;
+                    echo &quot;Parsed Project Version: ${parsedProjectVersion}&quot;
+                  
+                    withCredentials([string(credentialsId: &quot;${env.DEPENDENCY_TRACK_API_KEY_ID}&quot;, variable: &apos;API_KEY&apos;)]) {
+                        dependencyTrackPublisher artifact: &quot;${env.SBOM_FILE_PATH}&quot;,
+                        projectName: parsedProjectName,
+                        projectVersion: parsedProjectVersion,
+                        synchronous: true,
+                        dependencyTrackApiKey: API_KEY
+                    }
                 }
             }
         }

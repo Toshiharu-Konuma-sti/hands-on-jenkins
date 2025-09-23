@@ -6,7 +6,7 @@
     vars_common.yml
 
   vars:
-    jar_base: "apisl.handson.grafana.webapp.webui"
+    jar_base: "apisl.handson.rollingdice.webapp.webui"
     jar_version: "0.0.1-SNAPSHOT"
     app_name: "webapp-webui"
 

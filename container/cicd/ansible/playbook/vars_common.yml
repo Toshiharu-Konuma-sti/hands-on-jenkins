@@ -4,7 +4,7 @@ app_dir: "/opt/{{ app_name }}"
 java_home: "/usr"
 
 # --- Download Settings for Artifactory ---
-artifactory_url: "http://artifactory:8081/artifactory/hands-on-{{ app_name }}/build/libs"
+artifactory_url: "http://artifactory:8081/artifactory/hands-on-rollingdice-{{ app_name }}/build/libs"
 artifactory_username: "{{ lookup('env', 'ARTIFACTORY_USERNAME') }}"
 artifactory_password: "{{ lookup('env', 'ARTIFACTORY_PASSWORD') }}"
 

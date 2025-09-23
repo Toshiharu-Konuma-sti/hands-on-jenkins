@@ -48,17 +48,26 @@ credentials:
     domainCredentials:
       - credentials:
           - usernamePassword:
-              scope: GLOBAL
               id: "ansible-node-credential"
+              scope: GLOBAL
               username: "root"
               password: "password"
           - usernamePassword:
-              scope: GLOBAL
               id: "artifactory-app-credential"
+              scope: GLOBAL
               username: "admin"
               password: "password"
+          - string:
+              id: "dependency-track-api-key"
+              scope: GLOBAL
+              secret: "### You should issue an api-key from Dependency-Track and set it! ###"
 
 unclassified:
+  dependencyTrackPublisher:
+    dependencyTrackUrl: "http://dep-track-apiserver:8080"
+    dependencyTrackApiKey: "dependency-track-api-key"
+    dependencyTrackAutoCreateProjects: true
+    dependencyTrackFrontendUrl: "http://localhost:8980"
   jFrogPlatformBuilder:
     allowHttpConnections: true
     jfrogInstances:

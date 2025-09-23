@@ -8,5 +8,5 @@ There are urls below to get the job configuration.
 
 * notes:
   - Once you have obtained the build job definition,
-    1. Rewrite the secretToken.
-    2. Delete the plugin's version.
+    1. Delete the plugin's version.
+    #2. Rewrite the secretToken.

@@ -134,6 +134,7 @@ create_container()
 		-f $CUR_DIR/docker-compose.yml \
 		-f $CUR_DIR/docker-compose-webapp.yml \
 		-f $CUR_DIR/docker-compose-volumes.yaml \
+		-f $CUR_DIR/docker-compose-dependencytrack.yml \
 		up -d -V --remove-orphans
 }
 # }}}
@@ -161,6 +162,7 @@ destory_container()
 		-f $CUR_DIR/docker-compose.yml \
 		-f $CUR_DIR/docker-compose-webapp.yml \
 		-f $CUR_DIR/docker-compose-volumes.yaml \
+		-f $CUR_DIR/docker-compose-dependencytrack.yml \
 		down -v --remove-orphans
 	docker volume rm artifactory_data
 	docker volume rm postgres_data
@@ -170,9 +172,15 @@ destory_container()
 # {{{ join_to_network()
 join_to_network()
 {
+	echo "\n### START: Join to the network ##########"
 	docker network connect hands-net artifactory
 	docker network connect intra-net artifactory
 	docker network connect intra-net postgresql
+	docker network connect hands-net dep-track-apiserver
+	docker network connect hands-net dep-track-frontend
+	docker network connect intra-net dep-track-apiserver
+	docker network connect intra-net dep-track-frontend
+	docker network connect intra-net dep-track-postgres
 }
 # }}}
 
@@ -197,10 +205,103 @@ rebuild_container()
 # }}}
 
 # {{{ clear_ssh_known_hosts()
+# If a container is recreated (rebuild), it can not connect by SSH to a
+# recreated container because the SSH public key will change, so clear the SSH
+# public key registered in known_hosts.
+# The connecting by SSH is mainly used on Ansible.
 clear_ssh_known_hosts()
 {
 	echo "\n### START: Clear the know_hosts file for ssh ##########"
 	docker exec ansible sh -c '[ -f ~/.ssh/known_hosts ] && > ~/.ssh/known_hosts'
+}
+# }}}
+
+
+# {{{ get_dependencytrack_yaml()
+# $1: the current directory
+# $2: url
+# $3: file name
+get_dependencytrack_yaml()
+{
+	CUR_DIR=$1
+	YAML_URL=$2
+	YAML_FIL=$3
+	echo "\n### START: Get docker-compose YAML for Dependency-Track ##########"
+	curl -L -o $CUR_DIR/$YAML_FIL $YAML_URL
+}
+# }}}
+
+# {{{ prepare_deptrack_server_name()
+# $1: the current directory
+# $2: the docker compose file name for dependency-track
+# $3: api container name before change
+# $4: api container name after change
+# $5: frontend container name before change
+# $6: frontend container name after change
+# $7: postgresql container name before change
+# $8: postgersql container name after change
+prepare_deptrack_server_name()
+{
+	CUR_DIR=$1
+	YAML_FIL=$2
+	APIS_BEF=$3
+	APIS_AFT=$4
+	FRNT_BEF=$5
+	FRNT_AFT=$6
+	PSQL_BEF=$7
+	PSQL_AFT=$8
+	echo "### START: Replace container names in Dependency-Track's docker-compose YAML"
+	# api server and frontend
+	sed -i \
+		-e "s/^\(\s*\)$APIS_BEF:/\1$APIS_AFT:/" \
+		-e "s/^\(\s*\)$FRNT_BEF:/\1$FRNT_AFT:/" $CUR_DIR/$YAML_FIL
+	# postgresql
+	sed -i \
+		-e "s/^\(\s*\)$PSQL_BEF:/\1$PSQL_AFT:/" \
+		-e "s|//$PSQL_BEF:|//$PSQL_AFT:|" $CUR_DIR/$YAML_FIL
+}
+# }}}
+
+# {{{ prepare_deptrack_port_number()
+# $1: the current directory
+# $2: the docker compose file name for dependency-track
+# $3: api port number before change
+# $4: api port number after change
+# $5: frontend port number before change
+# $6: frontend port number after change
+prepare_deptrack_port_number()
+{
+	CUR_DIR=$1
+	YAML_FIL=$2
+	APIS_BEF=$3
+	APIS_AFT=$4
+	FRNT_BEF=$5
+	FRNT_AFT=$6
+	echo "### START: Replace the port number exposed to the hosts in Dependency-Track's docker-compose YAML"
+	sed -i \
+		-e "s/$APIS_BEF/$APIS_AFT/g" \
+		-e "s/$FRNT_BEF:/$FRNT_AFT:/g" $CUR_DIR/$YAML_FIL
+}
+# }}}
+
+# {{{ insert_deptrack_container_name()
+# $1: the current directory
+# $2: the docker compose file name for dependency-track
+# $3: api container name after change
+# $4: frontend container name after change
+# $5: postgersql container name after change
+insert_deptrack_container_name()
+{
+	CUR_DIR=$1
+	YAML_FIL=$2
+	APIS_AFT=$3
+	FRNT_AFT=$4
+	PSQL_AFT=$5
+	echo "### START: Insert the container name in Dependency-Track's docker-compose YAML"
+
+	sed -i "s/^  $APIS_AFT:/  $APIS_AFT:\n    container_name: $APIS_AFT/" $CUR_DIR/$YAML_FIL
+	sed -i "s/^  $FRNT_AFT:/  $FRNT_AFT:\n    container_name: $FRNT_AFT/" $CUR_DIR/$YAML_FIL
+	sed -i "s/^  $PSQL_AFT:/  $PSQL_AFT:\n    container_name: $PSQL_AFT/" $CUR_DIR/$YAML_FIL
 }
 # }}}
 
@@ -298,14 +399,20 @@ prepare_webapp_mysql_files()
 # {{{ clone_gitlab_repo_with_branch()
 # $1: the current directory
 # $2: the download directory
-# $3: the webapp package url
-# $4: the list of the names of webapp repository
+# $3: the rolling dice webapp package url in github
+
+# $4: the gitlab host name
+# $5: the gitlab user name
+
+# $6: the list of the names of webapp repository
 clone_gitlab_repo_with_branch()
 {
 	CUR_DIR="$1"
 	DWN_DIR="$2"
 	PKG_URL="$3"
-	WEBAPP_PROJECTS="$4"
+	GL_HOST="$4"
+	GL_USER="$5"
+	WEBAPP_PROJECTS="$6"
 	echo "\n### START: Prepare GitLab repository and create a brunch ##########"
 	GIT_REPO=$(echo $PKG_URL | cut -d '/' -f 5)
 	GIT_BRANCH=$(basename $PKG_URL | sed "s/\.[^.]*$//")
@@ -360,11 +467,12 @@ show_url()
 /************************************************************
  * Information:
  * - Access to Web ui tools with the URL below.
- *   - Jenkins:     http://localhost:8080/
- *   - Artifactory: http://localhost:8082/
- *   - GitLab:      http://localhost:13000/
+ *   - Jenkins:             http://localhost:8080/
+ *   - Dependency-Track:    http://localhost:8980/
+ *   - Artifactory:         http://localhost:8082/
+ *   - GitLab:              http://localhost:13000/
  * - Access to the deployed webapp with the URL below.
- *   - webapp:      http://localhost:8181/
+ *   - webapp:              http://localhost:8181/
  ***********************************************************/
 EOS
 }
@@ -402,9 +510,10 @@ show_information()
 {
 	echo "- Setup Instructions:"
 	echo "  1. Access Jenkins and apply JCasC: \e[4m/var/jenkins_home/my-config/jcasc/jenkins.yaml\e[m"
-	echo "  2. Access Artifactory and create repositories: \e[4mhands-on-webapp-webapi\e[m and \e[4mhands-on-webapp-webui\e[m"
-	echo "  3. Run the setup script: \e[4msetup/SETUP_HANDS-ON.sh\e[m"
-	echo "  4. Run the coding preparation script: \e[4mtry-my-hand/PREPARE_CODING.sh\e[m"
+	echo "  2. Access Dependency-Track, issue an API-Key and update it to the credential managed in Jenkin."
+	echo "  3. Access Artifactory and create repositories: \e[4mhands-on-rollingdice-webapp-webapi\e[m and \e[4mhands-on-rollingdice-webapp-webui\e[m"
+	echo "  4. Run the setup script: \e[4msetup/SETUP_HANDS-ON.sh\e[m"
+	echo "  5. Run the coding preparation script: \e[4mtry-my-hand/PREPARE_CODING.sh\e[m"
 	echo ""
 }
 # // }}}
