@@ -17,7 +17,8 @@ wget -O $JK_CLI_PATH http://$JENK_HOST_EXT/jnlpJars/$JK_CLI_JAR
 echo "\n### START: create build jobs to Jenkins"
 
 for MY_PROJ in $WEBAPP_PROJECTS; do
-	java -jar $JK_CLI_PATH -s http://$JENK_HOST_EXT/ -auth $JENK_USER:$JENK_PASS create-job build-$MY_PROJ < $CUR_DIR/jenkins/jobs/config-build-$MY_PROJ.xml
+	sed "s|<secretToken>.*</secretToken>|<secretToken>${JENK_JOB_TOKEN}</secretToken>|" $CUR_DIR/jenkins/jobs/config-build-$MY_PROJ.xml | \
+		java -jar $JK_CLI_PATH -s http://$JENK_HOST_EXT/ -auth $JENK_USER:$JENK_PASS create-job build-$MY_PROJ
 done
 
 echo "\n### START: create deploy job to Jenkins"
