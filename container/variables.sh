@@ -7,14 +7,14 @@ WEBAPP_PKG_URL="https://github.com/Toshiharu-Konuma-sti/hands-on-rollingdice-web
 # WEBAPP_PKG_URL="https://github.com/Toshiharu-Konuma-sti/hands-on-rollingdice-webapp/archive/refs/heads/dev202509.zip"
 WEBAPP_PROJECTS="webapp-webui webapp-webapi"
 
-JK_HOST_EXT="localhost:8080"
-JK_HOST_INT="jenkins:8080"
-JK_USER="admin"
-JK_PASS="password"
-JK_JOB_TOKEN="1234567890abcdefghijklmnopqrstuvwxyz"
+JENK_HOST_EXT="localhost:8080"
+JENK_HOST_INT="jenkins:8080"
+JENK_USER="admin"
+JENK_PASS="password"
+JENK_JOB_TOKEN="1234567890abcdefghijklmnopqrstuvwxyz"
 
-GL_USER="root"
-GL_HOST="localhost:13000"
+GITL_USER="root"
+GITL_HOST="localhost:13000"
 
 DEPT_YAML_URL="https://dependencytrack.org/docker-compose.yml"
 DEPT_YAML_FIL="docker-compose-dependencytrack.yml"

@@ -14,7 +14,7 @@ echo "\n### START: Get a package for webapp"
 get_webapp_package $DWN_DIR $WEBAPP_PKG_URL
 
 echo "\n### START: Clone gitlab repository with branch"
-clone_gitlab_repo_with_branch "$CUR_DIR" "$DWN_DIR" "$WEBAPP_PKG_URL" "$WEBAPP_PROJECTS"
+clone_gitlab_repo_with_branch "$CUR_DIR" "$DWN_DIR" "$WEBAPP_PKG_URL" "$GITL_HOST" "$GITL_USER" "$WEBAPP_PROJECTS"
 
 echo "\n### START: Clean up a package for webapp"
 clean_webapp_package $DWN_DIR $WEBAPP_PKG_URL

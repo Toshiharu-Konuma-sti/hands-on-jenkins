@@ -368,14 +368,20 @@ prepare_webapp_mysql_files()
 # {{{ clone_gitlab_repo_with_branch()
 # $1: the current directory
 # $2: the download directory
-# $3: the webapp package url
-# $4: the list of the names of webapp repository
+# $3: the rolling dice webapp package url in github
+
+# $4: the gitlab host name
+# $5: the gitlab user name
+
+# $6: the list of the names of webapp repository
 clone_gitlab_repo_with_branch()
 {
 	CUR_DIR="$1"
 	DWN_DIR="$2"
 	PKG_URL="$3"
-	WEBAPP_PROJECTS="$4"
+	GL_HOST="$4"
+	GL_USER="$5"
+	WEBAPP_PROJECTS="$6"
 	echo "\n### START: Prepare GitLab repository and create a brunch ##########"
 	GIT_REPO=$(echo $PKG_URL | cut -d '/' -f 5)
 	GIT_BRANCH=$(basename $PKG_URL | sed "s/\.[^.]*$//")
