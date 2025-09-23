@@ -217,62 +217,93 @@ clear_ssh_known_hosts()
 # }}}
 
 
-# $1: url
-# $2: file name
+# {{{ get_dependencytrack_yaml()
+# $1: the current directory
+# $2: url
+# $3: file name
 get_dependencytrack_yaml()
 {
-	YAML_URL=$1
-	YAML_FIL=$2
+	CUR_DIR=$1
+	YAML_URL=$2
+	YAML_FIL=$3
 	echo "\n### START: Get docker-compose YAML for Dependency-Track ##########"
-	curl -L -o $YAML_FIL $YAML_URL
+	curl -L -o $CUR_DIR/$YAML_FIL $YAML_URL
 }
+# }}}
 
+# {{{ prepare_deptrack_server_name()
+# $1: the current directory
+# $2: the docker compose file name for dependency-track
+# $3: api container name before change
+# $4: api container name after change
+# $5: frontend container name before change
+# $6: frontend container name after change
+# $7: postgresql container name before change
+# $8: postgersql container name after change
 prepare_deptrack_server_name()
 {
-	YAML_FIL=$1
-	APIS_BEF=$2
-	APIS_AFT=$3
-	FRNT_BEF=$4
-	FRNT_AFT=$5
-	PSQL_BEF=$6
-	PSQL_AFT=$7
+	CUR_DIR=$1
+	YAML_FIL=$2
+	APIS_BEF=$3
+	APIS_AFT=$4
+	FRNT_BEF=$5
+	FRNT_AFT=$6
+	PSQL_BEF=$7
+	PSQL_AFT=$8
 	echo "### START: Replace container names in Dependency-Track's docker-compose YAML"
 	# api server and frontend
 	sed -i \
 		-e "s/^\(\s*\)$APIS_BEF:/\1$APIS_AFT:/" \
-		-e "s/^\(\s*\)$FRNT_BEF:/\1$FRNT_AFT:/" $YAML_FIL
+		-e "s/^\(\s*\)$FRNT_BEF:/\1$FRNT_AFT:/" $CUR_DIR/$YAML_FIL
 	# postgresql
 	sed -i \
 		-e "s/^\(\s*\)$PSQL_BEF:/\1$PSQL_AFT:/" \
-		-e "s|//$PSQL_BEF:|//$PSQL_AFT:|" $YAML_FIL
+		-e "s|//$PSQL_BEF:|//$PSQL_AFT:|" $CUR_DIR/$YAML_FIL
 }
+# }}}
 
+# {{{ prepare_deptrack_port_number()
+# $1: the current directory
+# $2: the docker compose file name for dependency-track
+# $3: api port number before change
+# $4: api port number after change
+# $5: frontend port number before change
+# $6: frontend port number after change
 prepare_deptrack_port_number()
 {
-	YAML_FIL=$1
-	APIS_BEF=$2
-	APIS_AFT=$3
-	FRNT_BEF=$4
-	FRNT_AFT=$5
+	CUR_DIR=$1
+	YAML_FIL=$2
+	APIS_BEF=$3
+	APIS_AFT=$4
+	FRNT_BEF=$5
+	FRNT_AFT=$6
 	echo "### START: Replace the port number exposed to the hosts in Dependency-Track's docker-compose YAML"
 	sed -i \
 		-e "s/$APIS_BEF/$APIS_AFT/g" \
-		-e "s/$FRNT_BEF:/$FRNT_AFT:/g" $YAML_FIL
+		-e "s/$FRNT_BEF:/$FRNT_AFT:/g" $CUR_DIR/$YAML_FIL
 }
+# }}}
 
-insert_container_name()
+# {{{ insert_deptrack_container_name()
+# $1: the current directory
+# $2: the docker compose file name for dependency-track
+# $3: api container name after change
+# $4: frontend container name after change
+# $5: postgersql container name after change
+insert_deptrack_container_name()
 {
-	YAML_FIL=$1
-	APIS_AFT=$2
-	FRNT_AFT=$3
-	PSQL_AFT=$4
+	CUR_DIR=$1
+	YAML_FIL=$2
+	APIS_AFT=$3
+	FRNT_AFT=$4
+	PSQL_AFT=$5
 	echo "### START: Insert the container name in Dependency-Track's docker-compose YAML"
 
-	sed -i "s/^  $APIS_AFT:/  $APIS_AFT:\n    container_name: $APIS_AFT/" $YAML_FIL
-	sed -i "s/^  $FRNT_AFT:/  $FRNT_AFT:\n    container_name: $FRNT_AFT/" $YAML_FIL
-	sed -i "s/^  $PSQL_AFT:/  $PSQL_AFT:\n    container_name: $PSQL_AFT/" $YAML_FIL
-	
+	sed -i "s/^  $APIS_AFT:/  $APIS_AFT:\n    container_name: $APIS_AFT/" $CUR_DIR/$YAML_FIL
+	sed -i "s/^  $FRNT_AFT:/  $FRNT_AFT:\n    container_name: $FRNT_AFT/" $CUR_DIR/$YAML_FIL
+	sed -i "s/^  $PSQL_AFT:/  $PSQL_AFT:\n    container_name: $PSQL_AFT/" $CUR_DIR/$YAML_FIL
 }
+# }}}
 
 
 # {{{ get_jfrog_oss_package()

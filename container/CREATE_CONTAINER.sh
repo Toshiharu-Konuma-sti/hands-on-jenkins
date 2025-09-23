@@ -12,6 +12,17 @@ case "$1" in
 		clear
 		start_banner
 
+		get_dependencytrack_yaml $CUR_DIR $DEPT_YAML_URL $DEPT_YAML_FIL
+		prepare_deptrack_server_name $CUR_DIR $DEPT_YAML_FIL \
+			$DEPT_APIS_NM_BEF $DEPT_APIS_NM_AFT \
+			$DEPT_FRNT_NM_BEF $DEPT_FRNT_NM_AFT \
+			$DEPT_PSQL_NM_BEF $DEPT_PSQL_NM_AFT
+		prepare_deptrack_port_number $CUR_DIR $DEPT_YAML_FIL \
+			$DEPT_APIS_PORT_BEF $DEPT_APIS_PORT_AFT \
+			$DEPT_FRNT_PORT_BEF $DEPT_FRNT_PORT_AFT
+		insert_deptrack_container_name $CUR_DIR $DEPT_YAML_FIL \
+			$DEPT_APIS_NM_AFT $DEPT_FRNT_NM_AFT $DEPT_PSQL_NM_AFT
+
 		get_jfrog_oss_package $DWN_DIR $ARTF_PKG_URL $ARTF_PKG_PTN
 		prepare_jfrog_oss_files $CUR_DIR $DWN_DIR $ARTF_DIR_PTN
 		clean_jfrog_oss_package $DWN_DIR $ARTF_PKG_PTN $ARTF_DIR_PTN
@@ -64,15 +75,15 @@ case "$1" in
 		start_banner
 		destory_container $CUR_DIR
 
-		get_dependencytrack_yaml $DEPT_YAML_URL $DEPT_YAML_FIL
-		prepare_deptrack_server_name $DEPT_YAML_FIL \
+		get_dependencytrack_yaml $CUR_DIR $DEPT_YAML_URL $DEPT_YAML_FIL
+		prepare_deptrack_server_name $CUR_DIR $DEPT_YAML_FIL \
 			$DEPT_APIS_NM_BEF $DEPT_APIS_NM_AFT \
 			$DEPT_FRNT_NM_BEF $DEPT_FRNT_NM_AFT \
 			$DEPT_PSQL_NM_BEF $DEPT_PSQL_NM_AFT
-		prepare_deptrack_port_number $DEPT_YAML_FIL \
+		prepare_deptrack_port_number $CUR_DIR $DEPT_YAML_FIL \
 			$DEPT_APIS_PORT_BEF $DEPT_APIS_PORT_AFT \
 			$DEPT_FRNT_PORT_BEF $DEPT_FRNT_PORT_AFT
-		insert_container_name $DEPT_YAML_FIL \
+		insert_deptrack_container_name $CUR_DIR $DEPT_YAML_FIL \
 			$DEPT_APIS_NM_AFT $DEPT_FRNT_NM_AFT $DEPT_PSQL_NM_AFT
 
 		get_jfrog_oss_package $DWN_DIR $ARTF_PKG_URL $ARTF_PKG_PTN
