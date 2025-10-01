@@ -467,12 +467,14 @@ show_url()
 /************************************************************
  * Information:
  * - Access to Web ui tools with the URL below.
- *   - Jenkins:             http://localhost:8080/
- *   - Dependency-Track:    http://localhost:8980/
- *   - Artifactory:         http://localhost:8082/
- *   - GitLab:              http://localhost:13000/
+ *   - Jenkins:             http://localhost:8080
+ *   - Dependency-Track:    http://localhost:8980
+ *   - Artifactory:         http://localhost:8082
+ *   - GitLab:              http://localhost:13000
  * - Access to the deployed webapp with the URL below.
- *   - webapp:              http://localhost:8181/
+ *   - webapp:              http://localhost:8181
+ * - Access to the external web service with the URL below.
+ *   - Sonatype OSS Index   https://ossindex.sonatype.org
  ***********************************************************/
 EOS
 }
@@ -510,10 +512,13 @@ show_information()
 {
 	echo "- Setup Instructions:"
 	echo "  1. Access Jenkins and apply JCasC: \e[4m/var/jenkins_home/my-config/jcasc/jenkins.yaml\e[m"
-	echo "  2. Access Dependency-Track, issue an API-Key and update it to the credential managed in Jenkin."
-	echo "  3. Access Artifactory and create repositories: \e[4mhands-on-rollingdice-webapp-webapi\e[m and \e[4mhands-on-rollingdice-webapp-webui\e[m"
-	echo "  4. Run the setup script: \e[4msetup/SETUP_HANDS-ON.sh\e[m"
-	echo "  5. Run the coding preparation script: \e[4mtry-my-hand/PREPARE_CODING.sh\e[m"
+	echo "  2. Access Sonatype OSS Index and get it's API Token."
+	echo "  3. Access Dependency-Track and update Sonatype OSS Index registered email and API Token."
+	echo "  4. Issue an API-Key in Dependency-Track."
+	echo "  5. Access Jenkins and update it with the API key issued by Dependency-Track."
+	echo "  6. Access Artifactory and create repositories: \e[4mhands-on-rollingdice-webapp-webapi\e[m and \e[4mhands-on-rollingdice-webapp-webui\e[m"
+	echo "  7. Run the setup script: \e[4msetup/SETUP_HANDS-ON.sh\e[m"
+	echo "  8. Run the coding preparation script: \e[4mtry-my-hand/PREPARE_CODING.sh\e[m"
 	echo ""
 }
 # // }}}
