@@ -10,13 +10,7 @@ DWN_DIR=$(prepare_download_dir $CUR_DIR)
 clear
 start_banner
 
-echo "\n### START: Get a package for webapp"
-get_webapp_package $DWN_DIR $WEBAPP_PKG_URL
-
-echo "\n### START: Clone gitlab repository with branch"
-clone_gitlab_repo_with_branch "$CUR_DIR" "$DWN_DIR" "$WEBAPP_PKG_URL" "$GITL_HOST" "$GITL_USER" "$WEBAPP_PROJECTS"
-
-echo "\n### START: Clean up a package for webapp"
-clean_webapp_package $DWN_DIR $WEBAPP_PKG_URL
+$CUR_DIR/step01-clone_gitlab_repo.sh
+$CUR_DIR/step02-move_webapp_codes_to_repo.sh
 
 finish_banner $S_TIME

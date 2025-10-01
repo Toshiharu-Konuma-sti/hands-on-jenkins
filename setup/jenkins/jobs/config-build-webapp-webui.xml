@@ -94,6 +94,47 @@ pipeline{
                 jf &quot;rt gradle build -x test -x check --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
             }
         }
+        stage(&apos;Generate SBOM&apos;) {
+            steps {
+                echo &quot;### START: generate SBOM using CycloneDX plugin&quot;
+                sh &apos;./gradlew cyclonedxBom --info&apos;
+            }
+        }
+        stage(&apos;Publish SBOM to Dependency-Track&apos;) {
+            steps {
+                echo &quot;### START: publich SBOM to Dependency-Track&quot;
+                script {
+                    // 1. Get the full path of the JAR files that match a pattern.
+                    def jarFilePath = sh(script: &quot;find . -path &apos;./${env.JAR_FILE_PATTERN}&apos;&quot;, returnStdout: true).trim()
+                    if (jarFilePath.isEmpty()) {
+                        error &quot;JAR file not found with pattern: ${env.JAR_FILE_PATTERN}&quot;
+                    }
+                  
+                    // 2. Extract only the file name from the full path.
+                    def jarFileName = sh(script: &quot;basename &apos;${jarFilePath}&apos;&quot;, returnStdout: true).trim()
+                    echo &quot;Found JAR file: ${jarFileName}&quot;
+                    
+                    // 3. Extract project name and version using regular expressions.
+                    def projectInfo = parseJarName(jarFileName)
+                    if (projectInfo == null) {
+                        error &quot;Could not parse project name and version from JAR file: ${jarFileName}&quot;
+                    }
+
+                    def parsedProjectName = projectInfo[0]
+                    def parsedProjectVersion = projectInfo[1]
+                    echo &quot;Parsed Project Name: ${parsedProjectName}&quot;
+                    echo &quot;Parsed Project Version: ${parsedProjectVersion}&quot;
+                  
+                    withCredentials([string(credentialsId: &quot;${env.DEPENDENCY_TRACK_API_KEY_ID}&quot;, variable: &apos;API_KEY&apos;)]) {
+                        dependencyTrackPublisher artifact: &quot;${env.SBOM_FILE_PATH}&quot;,
+                        projectName: parsedProjectName,
+                        projectVersion: parsedProjectVersion,
+                        synchronous: true,
+                        dependencyTrackApiKey: API_KEY
+                    }
+                }
+            }
+        }
         stage(&quot;Run Unit Tests&quot;){
             steps{
                 echo &quot;### START: run unit tests&quot;
@@ -146,47 +187,6 @@ pipeline{
                     recordIssues tools: [
                         pmdParser(pattern: &apos;build/reports/pmd/*.xml&apos;)
                     ]
-                }
-            }
-        }
-        stage(&apos;Generate SBOM&apos;) {
-            steps {
-                echo &quot;### START: generate SBOM using CycloneDX plugin&quot;
-                sh &apos;./gradlew cyclonedxBom --info&apos;
-            }
-        }
-        stage(&apos;Publish SBOM to Dependency-Track&apos;) {
-            steps {
-                echo &quot;### START: publich SBOM to Dependency-Track&quot;
-                script {
-                    // 1. Get the full path of the JAR files that match a pattern.
-                    def jarFilePath = sh(script: &quot;find . -path &apos;./${env.JAR_FILE_PATTERN}&apos;&quot;, returnStdout: true).trim()
-                    if (jarFilePath.isEmpty()) {
-                        error &quot;JAR file not found with pattern: ${env.JAR_FILE_PATTERN}&quot;
-                    }
-                  
-                    // 2. Extract only the file name from the full path.
-                    def jarFileName = sh(script: &quot;basename &apos;${jarFilePath}&apos;&quot;, returnStdout: true).trim()
-                    echo &quot;Found JAR file: ${jarFileName}&quot;
-                    
-                    // 3. Extract project name and version using regular expressions.
-                    def projectInfo = parseJarName(jarFileName)
-                    if (projectInfo == null) {
-                        error &quot;Could not parse project name and version from JAR file: ${jarFileName}&quot;
-                    }
-
-                    def parsedProjectName = projectInfo[0]
-                    def parsedProjectVersion = projectInfo[1]
-                    echo &quot;Parsed Project Name: ${parsedProjectName}&quot;
-                    echo &quot;Parsed Project Version: ${parsedProjectVersion}&quot;
-                  
-                    withCredentials([string(credentialsId: &quot;${env.DEPENDENCY_TRACK_API_KEY_ID}&quot;, variable: &apos;API_KEY&apos;)]) {
-                        dependencyTrackPublisher artifact: &quot;${env.SBOM_FILE_PATH}&quot;,
-                        projectName: parsedProjectName,
-                        projectVersion: parsedProjectVersion,
-                        synchronous: true,
-                        dependencyTrackApiKey: API_KEY
-                    }
                 }
             }
         }
