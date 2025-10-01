@@ -365,7 +365,7 @@ get_webapp_package()
 {
 	DWN_DIR=$1
 	PKG_URL=$2
-	echo "\n### START: Get webapp package ##########"
+	echo "\n### START: Get webapp package from the repository in GitHub ##########"
 	PKG_FILE=$(basename $PKG_URL)
 	PKG_PATH=$DWN_DIR/$PKG_FILE
 	curl -LO --output-dir $DWN_DIR $PKG_URL
@@ -396,35 +396,24 @@ prepare_webapp_mysql_files()
 }
 # }}}
 
-# {{{ clone_gitlab_repo_with_branch()
+# {{{ move_webapp_codes_to_repo()
 # $1: the current directory
 # $2: the download directory
 # $3: the rolling dice webapp package url in github
-
-# $4: the gitlab host name
-# $5: the gitlab user name
-
-# $6: the list of the names of webapp repository
-clone_gitlab_repo_with_branch()
+# $4: the list of the names of webapp repository
+move_webapp_codes_to_repo()
 {
 	CUR_DIR="$1"
 	DWN_DIR="$2"
 	PKG_URL="$3"
-	GL_HOST="$4"
-	GL_USER="$5"
-	WEBAPP_PROJECTS="$6"
-	echo "\n### START: Prepare GitLab repository and create a brunch ##########"
+	WEBAPP_PROJECTS="$4"
+
+	echo "\n### START: Move webapp codes to GitLab repository ##########"
 	GIT_REPO=$(echo $PKG_URL | cut -d '/' -f 5)
 	GIT_BRANCH=$(basename $PKG_URL | sed "s/\.[^.]*$//")
 
 	for MY_PROJ in $WEBAPP_PROJECTS; do
 		PROJ_DIR=$(echo $MY_PROJ | sed -e "s/.*-//g")
-
-		rm -rf $CUR_DIR/$MY_PROJ
-		git clone http://$GL_HOST/$GL_USER/$MY_PROJ.git
-		git -C $CUR_DIR/$MY_PROJ/ checkout -b feature/sample
-
-		rm -rf $CUR_DIR/$MY_PROJ/*/
 
 		mv -f $DWN_DIR/$GIT_REPO-$GIT_BRANCH/$PROJ_DIR/* $CUR_DIR/$MY_PROJ/
 		mv -f $DWN_DIR/$GIT_REPO-$GIT_BRANCH/$PROJ_DIR/.git* $CUR_DIR/$MY_PROJ/
@@ -447,6 +436,31 @@ clean_webapp_package()
 
 	rm -f $PKG_PATH
 	rm -rf $DWN_DIR/$GIT_REPO-$GIT_BRANCH/
+}
+# }}}
+
+# {{{ clone_gitlab_repo_with_branch()
+# $1: the current directory
+# $2: the download directory
+# $3: the gitlab host name
+# $4: the gitlab user name
+# $5: the list of the names of webapp repository
+clone_gitlab_repo_with_branch()
+{
+	CUR_DIR="$1"
+	DWN_DIR="$2"
+	GL_HOST="$3"
+	GL_USER="$4"
+	WEBAPP_PROJECTS="$5"
+
+	echo "\n### START: Clone gitlab repository with branch ##########"
+	for MY_PROJ in $WEBAPP_PROJECTS; do
+		PROJ_DIR=$(echo $MY_PROJ | sed -e "s/.*-//g")
+
+		rm -rf $CUR_DIR/$MY_PROJ
+		git clone http://$GL_HOST/$GL_USER/$MY_PROJ.git
+		git -C $CUR_DIR/$MY_PROJ/ checkout -b feature/sample
+	done
 }
 # }}}
 
