@@ -35,6 +35,7 @@ services:
     networks:
       - internal
       - external
+    restart: always
 
   ansible:
     container_name: ansible
