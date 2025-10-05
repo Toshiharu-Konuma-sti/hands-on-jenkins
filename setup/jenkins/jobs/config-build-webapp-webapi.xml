@@ -91,7 +91,7 @@ pipeline{
             steps {
                 echo &quot;### START: build with jfrog cli&quot;
                 jf &apos;gradle-config --repo-deploy ${ARTIFACTORY_REPO}&apos;
-                jf &quot;rt gradle build -x test -x check --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
+                jf &quot;rt gradle assemble -x cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
             }
         }
         stage(&apos;Generate SBOM&apos;) {
