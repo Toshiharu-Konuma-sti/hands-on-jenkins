@@ -71,6 +71,7 @@ pipeline{
         JAR_FILE_PATTERN = &apos;build/libs/apisl.handson.rollingdice.webapp.webui-*-SNAPSHOT.jar&apos;
         ARTIFACTORY_URL = &apos;http://artifactory:8081/artifactory&apos;
         ARTIFACTORY_REPO = &apos;hands-on-rollingdice-webapp-webui&apos;
+        ARTIFACTORY_VIRTUAL_REPO = &apos;gradle-virtual&apos;
         SBOM_FILE_PATH = &apos;build/reports/application.cdx.json&apos;
         DEPENDENCY_TRACK_API_KEY_ID = &apos;dependency-track-api-key&apos;
     }
@@ -90,7 +91,7 @@ pipeline{
         stage(&apos;Build with JFrog CLI&apos;) {
             steps {
                 echo &quot;### START: build with jfrog cli&quot;
-                jf &apos;gradle-config --repo-deploy ${ARTIFACTORY_REPO}&apos;
+                jf &apos;gradle-config --repo-deploy ${ARTIFACTORY_REPO} --repo-resolve ${ARTIFACTORY_VIRTUAL_REPO}&apos;
                 jf &quot;rt gradle assemble -x cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
             }
         }
