@@ -69,7 +69,6 @@ pipeline{
     environment {
         GIT_REPO_URL = &apos;http://gitlab:13000/root/webapp-webapi.git&apos;
         JAR_FILE_PATTERN = &apos;build/libs/apisl.handson.rollingdice.webapp.webapi-*-SNAPSHOT.jar&apos;
-        ARTIFACTORY_URL = &apos;http://artifactory:8081/artifactory&apos;
         ARTIFACTORY_REPO = &apos;hands-on-rollingdice-webapp-webapi&apos;
         ARTIFACTORY_VIRTUAL_REPO = &apos;gradle-virtual&apos;
         SBOM_FILE_PATH = &apos;build/reports/application.cdx.json&apos;
