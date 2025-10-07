@@ -130,6 +130,8 @@ create_container()
 	echo "\n### START: Create new containers ##########"
 	docker volume create --name=artifactory_data
 	docker volume create --name=postgres_data
+	docker volume create --name=dtrack-data
+	docker volume create --name=postgres-data
 	docker-compose \
 		-f $CUR_DIR/docker-compose.yml \
 		-f $CUR_DIR/docker-compose-webapp.yml \
@@ -166,6 +168,8 @@ destory_container()
 		down -v --remove-orphans
 	docker volume rm artifactory_data
 	docker volume rm postgres_data
+	docker volume rm dtrack-data
+	docker volume rm postgres-data
 }
 # }}}
 
