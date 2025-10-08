@@ -58,6 +58,8 @@ def parseJarName(String jarFileName) {
     return null
 }
 
+def testResultsProps = &quot;&quot;
+
 pipeline{
     agent{
         label &apos;master&apos;
@@ -143,6 +145,45 @@ pipeline{
             post {
                 always {
                     junit &apos;build/test-results/test/*.xml&apos;
+                    script {
+                        try {
+                            def totalTests = 0
+                            def failedTests = 0
+                            def skippedTests = 0
+                            
+                            def testFilesOutput = sh(script: &quot;find build/test-results/test -name &apos;*.xml&apos;&quot;, returnStdout: true).trim()
+                            
+                            if (testFilesOutput.isEmpty()) {
+                                echo &quot;No JUnit test result files found.&quot;
+                                testResultsProps = &quot;tests.status=no-results&quot;
+                            } else {
+                                def testFiles = testFilesOutput.split(&apos;\\n&apos;)
+                                testFiles.each { filePath -&gt;
+                                    if (fileExists(filePath)) {
+                                        // extract all necessary attribute values from the testsuite tag using the awk command
+                                        // get as a comma-separated string in the order &quot;tests,failures,errors,skipped&quot;
+                                        def awkCommand = &apos;&apos;&apos;awk -F&apos;&quot;&apos; &apos;/&lt;testsuite/ {for(i=1;i&lt;=NF;i++){if($i~/tests=$/){t=$(i+1)} if($i~/failures=$/){f=$(i+1)} if($i~/errors=$/){e=$(i+1)} if($i~/skipped=$/){s=$(i+1)}} printf &quot;%d,%d,%d,%d&quot;, t, f, e, s}&apos; &apos;&apos;&apos;
+                                        def countsStr = sh(script: &quot;${awkCommand} &apos;${filePath}&apos;&quot;, returnStdout: true).trim()
+                                        
+                                        def counts = countsStr.split(&apos;,&apos;)
+                                        if (counts.size() == 4) {
+                                            totalTests += counts[0].toInteger()
+                                            failedTests += counts[1].toInteger() // failures
+                                            failedTests += counts[2].toInteger() // errors
+                                            skippedTests += counts[3].toInteger()
+                                        }
+                                    }
+                                }
+                                
+                                def passedTests = totalTests - failedTests - skippedTests
+                                testResultsProps = &quot;tests.total=${totalTests};tests.passed=${passedTests};tests.failed=${failedTests};tests.skipped=${skippedTests}&quot;
+                                echo &quot;Generated test result properties for Artifactory: ${testResultsProps}&quot;
+                            }
+                        } catch (e) {
+                            echo &quot;Could not parse JUnit test results. Skipping property attachment. Error: ${e.message}&quot;
+                            testResultsProps = &quot;tests.status=unavailable&quot;
+                        }
+                    }
                 }
             }
         }
@@ -172,7 +213,7 @@ pipeline{
             post {
                 always {
                     recordIssues tools: [
-                        checkStyle(pattern: &apos;build/reports/checkstyle/&apos;)
+                        checkStyle(pattern: &apos;build/reports/checkstyle/*.xml&apos;)
                     ]
                 }
             }
@@ -205,7 +246,20 @@ pipeline{
         stage(&apos;Release an artifact to Artifactory&apos;) {
             steps {
                 echo &quot;### START: release an artifact to artifactory&quot;
-                jf &quot;rt u ${JAR_FILE_PATTERN} ${ARTIFACTORY_REPO}&quot;
+                script {
+                    def props = &quot;build.name=${ARTIFACTORY_REPO};build.number=${BUILD_NUMBER};${testResultsProps}&quot;
+                    def spec = &quot;&quot;&quot;{
+                        &quot;files&quot;: [
+                            {
+                                &quot;pattern&quot;: &quot;${JAR_FILE_PATTERN}&quot;,
+                                &quot;target&quot;: &quot;${ARTIFACTORY_REPO}&quot;,
+                                &quot;props&quot;: &quot;${props}&quot;
+                            }
+                        ]
+                    }&quot;&quot;&quot;
+                    writeFile file: &apos;upload.spec&apos;, text: spec
+                    jf &quot;rt u --spec=upload.spec&quot;
+                }
             }
         }
         stage(&apos;Publish a build info to Artifactory&apos;) {
