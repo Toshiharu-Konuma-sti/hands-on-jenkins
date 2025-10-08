@@ -540,7 +540,7 @@ show_information()
 	echo "- CI/CD Instructions:"
 	echo "  1. Run the script in the console. It will clone GitLab repository and add the webapp codes: \e[4mtry-my-hand/PREPARE_CODING.sh\e[m"
 	echo "  2. Go to GitLab and merge the branch in the repository."
-	echo "  3. Go to Jenkins and check the job's execution."
+	echo "  3. Go to Jenkins and check that the job has started."
 	echo "  4. Run the deployment job in Jenkins."
 	echo ""
 }
