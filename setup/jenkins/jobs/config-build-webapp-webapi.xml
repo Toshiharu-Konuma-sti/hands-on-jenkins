@@ -205,15 +205,15 @@ pipeline{
                 }
             }
         }
-        stage(&quot;Analyze codes with Checkstyle&quot;){
+        stage(&quot;Analyze binaries with SpotBugs&quot;){
             steps{
-                echo &quot;### START: analyze codes with checkstyle&quot;
-                jf &quot;gradle checkstyleMain checkstyleTest --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
+                echo &quot;### START: analyze binaries with spotbugs&quot;
+                jf &quot;gradle spotbugsMain spotbugsTest --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
             }
             post {
                 always {
                     recordIssues tools: [
-                        checkStyle(pattern: &apos;build/reports/checkstyle/*.xml&apos;)
+                        spotBugs(pattern: &apos;build/reports/spotbugs/*.xml&apos;)
                     ]
                 }
             }
@@ -227,6 +227,19 @@ pipeline{
                 always {
                     recordIssues tools: [
                         pmdParser(pattern: &apos;build/reports/pmd/*.xml&apos;)
+                    ]
+                }
+            }
+        }
+        stage(&quot;Analyze codes with Checkstyle&quot;){
+            steps{
+                echo &quot;### START: analyze codes with checkstyle&quot;
+                jf &quot;gradle checkstyleMain checkstyleTest --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
+            }
+            post {
+                always {
+                    recordIssues tools: [
+                        checkStyle(pattern: &apos;build/reports/checkstyle/*.xml&apos;)
                     ]
                 }
             }
