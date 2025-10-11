@@ -51,6 +51,7 @@ services:
       - internal
       - external
     tty: true
+    restart: always
 
 volumes:
   gitlab-config:

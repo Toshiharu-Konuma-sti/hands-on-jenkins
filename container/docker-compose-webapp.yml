@@ -18,6 +18,7 @@ services:
       - internal
       - external
     tty: true
+    restart: always
 
   webapp-webapi:
     container_name: webapp-webapi
@@ -29,6 +30,7 @@ services:
       - internal
       - external
     tty: true
+    restart: always
 
   webapp-mysql:
     hostname: webapp-mysql
@@ -49,6 +51,7 @@ services:
       MYSQL_USER: ${DB_USER}
       MYSQL_PASSWORD: ${DB_PASS}
       TZ: "Asia/Tokyo"
+    restart: always
 
 networks:
   internal:
