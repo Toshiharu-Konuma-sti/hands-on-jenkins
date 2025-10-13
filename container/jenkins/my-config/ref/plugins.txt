@@ -8,3 +8,4 @@ javadoc
 generic-tool
 jfrog
 dependency-track
+htmlpublisher

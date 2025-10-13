@@ -5,6 +5,8 @@ There are urls below to get the job configuration.
 - http://localhost:8080/job/build-webapp-webapi/config.xml
 - http://localhost:8080/job/build-webapp-webui/config.xml
 - http://localhost:8080/job/deploy-webapp/config.xml
+- http://localhost:8080/job/deploy-webapp-with-grafana/config.xml
+- http://localhost:8080/job/verify-dast-webapp-webapi/config.xml
 
 * notes:
   - Once you have obtained the build job definition,

@@ -1,0 +1,146 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job">
+  <actions>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition"/>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition">
+      <jobProperties/>
+      <triggers/>
+      <parameters/>
+      <options/>
+    </org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction>
+  </actions>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <com.dabsquared.gitlabjenkins.connection.GitLabConnectionProperty plugin="gitlab-plugin">
+      <gitLabConnection></gitLabConnection>
+      <jobCredentialId></jobCredentialId>
+      <useAlternativeCredential>false</useAlternativeCredential>
+    </com.dabsquared.gitlabjenkins.connection.GitLabConnectionProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">
+    <script>pipeline{
+    agent{
+        label &apos;master&apos;
+    }
+    tools {
+        jfrog &apos;my-jfrog-cli&apos;
+        gradle &apos;my-gradle&apos;
+    }
+    environment {
+        GIT_REPO_URL = &apos;http://gitlab:13000/root/webapp-webapi.git&apos;
+        JAR_FILE_PATTERN = &apos;build/libs/apisl.handson.rollingdice.webapp.webapi-*-SNAPSHOT.jar&apos;
+        ARTIFACTORY_REPO = &apos;hands-on-rollingdice-webapp-webapi&apos;
+        ARTIFACTORY_VIRTUAL_REPO = &apos;gradle-virtual&apos;
+        
+        HEALTH_CHECK_URL = &quot;http://localhost:8182/actuator/health&quot;
+        TARGET_URL = &apos;http://localhost:8182&apos;
+        ZAP_REPORT_NAME = &apos;zap-baseline-report.html&apos;
+    }
+    stages{
+        stage(&quot;Checkout a repository from GitLab&quot;){
+            steps{
+               echo &quot;### START: clone a repository from GitLab&quot;
+               git branch: &apos;main&apos;, url: &quot;${env.GIT_REPO_URL}&quot;
+            }
+        }
+        stage(&apos;Build with JFrog CLI&apos;) {
+            steps {
+                echo &quot;### START: build with jfrog cli&quot;
+                jf &quot;gradle-config --repo-deploy ${ARTIFACTORY_REPO} --repo-resolve ${ARTIFACTORY_VIRTUAL_REPO}&quot;
+                jf &quot;gradle assemble -x cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
+            }
+        }
+
+        stage(&apos;Run DAST with OWASP ZAP (Docker)&apos;) {
+            steps {
+                script {
+                    echo &quot;### START: run dast with owasp zap (docker)&quot;
+                    
+                    def jarFile = sh(script: &quot;ls ${env.JAR_FILE_PATTERN}&quot;, returnStdout: true).trim()
+
+                    if (jarFile.isEmpty()) {
+                        error &quot;JAR file not found with pattern: ${env.JAR_FILE_PATTERN}&quot;
+                    }
+                    echo &quot;Found JAR file: ${jarFile}&quot;
+
+                    try {
+                        sh &quot;&quot;&quot;
+                           nohup java -jar ${jarFile} \
+                                --management.otlp.metrics.export.enabled=false \
+                                --otel.sdk.disabled=true \
+                                &gt; app.log 2&gt;&amp;1 &amp; echo \$! &gt; app.pid
+                        &quot;&quot;&quot;
+                        echo &quot;Waiting for application to start...&quot;
+                        
+                        timeout(time: 1, unit: &apos;MINUTES&apos;) {
+                            sh &quot;until curl -s -o /dev/null -w &apos;%{http_code}&apos; ${env.HEALTH_CHECK_URL} | grep -q &apos;^[24]&apos;; do echo &apos;Waiting for app...&apos;; sleep 5; done&quot;
+                        }
+
+                        echo &quot;Application is up and running.&quot;
+
+                        echo &quot;### START: DAST scan with OWASP ZAP Docker container&quot;
+
+                        writeFile(file: &apos;zap_warn_rules.xml&apos;, text: &apos;&lt;rules&gt;&lt;/rules&gt;&apos;)
+
+                        def jenkinsUser = sh(script: &apos;id -u&apos;, returnStdout: true).trim()
+                        def jenkinsGroup = sh(script: &apos;id -g&apos;, returnStdout: true).trim()
+                        
+                        sh &quot;&quot;&quot;
+                            docker run --rm --network host \\
+                                -u ${jenkinsUser}:${jenkinsGroup} \\
+                                -v \$(pwd):/zap/wrk/:rw \\
+                                ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \\
+                                -t ${env.TARGET_URL} \\
+                                -r ${env.ZAP_REPORT_NAME} \\
+                                -w zap_warn_rules.xml \\
+                                -l WARN
+                        &quot;&quot;&quot;
+                    } finally {
+                        if (fileExists(&apos;app.log&apos;)) {
+                            echo &quot;--- Displaying application log (app.log) ---&quot;
+                            sh &apos;cat app.log&apos;
+                            echo &quot;--------------------------------------------&quot;
+                        }
+                        
+                        echo &quot;Stopping application...&quot;
+                        if (fileExists(&apos;app.pid&apos;)) {
+                            sh &apos;kill `cat app.pid` || true&apos;
+                        }
+                        
+                        echo &quot;Archiving artifacts...&quot;
+                        archiveArtifacts artifacts: &quot;${env.ZAP_REPORT_NAME}, app.log&quot;, allowEmptyArchive: true
+
+                        echo &quot;Publishing DAST report...&quot;
+                        publishHTML(target: [
+                            allowMissing: true,
+                            alwaysLinkToLastBuild: true,
+                            keepAll: true,
+                            reportDir: &apos;.&apos;,
+                            reportFiles: &quot;${env.ZAP_REPORT_NAME}&quot;,
+                            reportName: &apos;DAST Scan Report&apos;
+                        ])
+                    }
+                }
+            }
+        }
+
+
+    }
+    post{
+        always{
+            echo &quot;========always========&quot;
+        }
+        success{
+            echo &quot;========pipeline executed successfully ========&quot;
+        }
+        failure{
+            echo &quot;========pipeline execution failed========&quot;
+        }
+    }
+}</script>
+    <sandbox>true</sandbox>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>

@@ -4,7 +4,7 @@ x-image-cicd-target: &cicdTargetImage
   build:
     context: ./cicd
     dockerfile: Dockerfile-target
-  image: hands-on/ubuntu/cicd/target:latest
+  image: hands-on/jenkins/ubuntu/cicd/target:latest
 
 services:
 
