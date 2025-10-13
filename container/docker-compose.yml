@@ -28,7 +28,7 @@ services:
       context: ./jenkins
     image: hands-on/jenkins:latest
     environment:
-      - JAVA_OPTS=-Djenkins.model.Jenkins.crumbIssuerProxyCompatibility=true -Dhudson.model.DirectoryBrowserSupport.CSP=""
+      - JAVA_OPTS='-Djenkins.model.Jenkins.crumbIssuerProxyCompatibility=true -Dhudson.model.DirectoryBrowserSupport.CSP=""'
     volumes:
       - ./jenkins/my-config:/var/jenkins_home/my-config:ro
       - /var/run/docker.sock:/var/run/docker.sock

@@ -64,6 +64,8 @@
                     }
                     echo &quot;Found JAR file: ${jarFile}&quot;
 
+                    def containerName = &quot;zap-scan-${BUILD_NUMBER}&quot;
+
                     try {
                         sh &quot;&quot;&quot;
                            nohup java -jar ${jarFile} \
@@ -83,20 +85,41 @@
 
                         writeFile(file: &apos;zap_warn_rules.xml&apos;, text: &apos;&lt;rules&gt;&lt;/rules&gt;&apos;)
 
+                        sh &apos;id&apos;
                         def jenkinsUser = sh(script: &apos;id -u&apos;, returnStdout: true).trim()
                         def jenkinsGroup = sh(script: &apos;id -g&apos;, returnStdout: true).trim()
                         
+//                        sh &quot;&quot;&quot;
+//                            docker run --rm --network host \\
+//                                -w /zap/wrk \\
+//                                -u ${jenkinsUser}:${jenkinsGroup} \\
+//                                -v ${WORKSPACE}:/zap/wrk/:rw \\
+//                                ghcr.io/zaproxy/zaproxy:stable \\
+//                                /bin/bash -c &quot;zap-baseline.py -t ${env.TARGET_URL} -r ${env.ZAP_REPORT_NAME} -w zap_warn_rules.xml -l WARN -d &amp;&amp; echo &apos;--- ZAP Container ls -la /zap/wrk ---&apos; &amp;&amp; ls -la /zap/wrk&quot;
+//                        &quot;&quot;&quot;
+
                         sh &quot;&quot;&quot;
-                            docker run --rm --network host \\
+                            docker run --name ${containerName} --network host \\
+                                -w /zap/wrk \\
                                 -u ${jenkinsUser}:${jenkinsGroup} \\
-                                -v \$(pwd):/zap/wrk/:rw \\
-                                ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \\
-                                -t ${env.TARGET_URL} \\
-                                -r ${env.ZAP_REPORT_NAME} \\
-                                -w zap_warn_rules.xml \\
-                                -l WARN
+                                -v ${WORKSPACE}:/zap/wrk/:rw \\
+                                ghcr.io/zaproxy/zaproxy:stable \\
+                                /bin/bash -c &quot;zap-baseline.py -t ${env.TARGET_URL} -r ${env.ZAP_REPORT_NAME} -w zap_warn_rules.xml -l WARN -d &amp;&amp; echo &apos;--- ZAP Container ls -la /zap/wrk ---&apos; &amp;&amp; ls -la /zap/wrk&quot;
                         &quot;&quot;&quot;
+
+                        echo &quot;Copying &apos;${env.ZAP_REPORT_NAME}&apos; from container &apos;${containerName}&apos; to workspace...&quot;
+                        sh &quot;docker cp ${containerName}:/zap/wrk/${env.ZAP_REPORT_NAME} .&quot;
+                        
+                        echo &quot;Copying &apos;zap_warn_rules.xml&apos; from container &apos;${containerName}&apos; to workspace...&quot;
+                        sh &quot;docker cp ${containerName}:/zap/wrk/zap_warn_rules.xml .&quot;
+
                     } finally {
+
+                        if (containerName) {
+                            echo &quot;Cleaning up ZAP container: ${containerName}&quot;
+                            sh &quot;docker rm -f ${containerName} || true&quot;
+                        }
+
                         if (fileExists(&apos;app.log&apos;)) {
                             echo &quot;--- Displaying application log (app.log) ---&quot;
                             sh &apos;cat app.log&apos;
@@ -107,13 +130,16 @@
                         if (fileExists(&apos;app.pid&apos;)) {
                             sh &apos;kill `cat app.pid` || true&apos;
                         }
-                        
+
+                        echo &quot;Listing workspace files before archiving...&quot;
+                        sh &apos;ls -la&apos;
+
                         echo &quot;Archiving artifacts...&quot;
-                        archiveArtifacts artifacts: &quot;${env.ZAP_REPORT_NAME}, app.log&quot;, allowEmptyArchive: true
+                        archiveArtifacts artifacts: &quot;${env.ZAP_REPORT_NAME}, app.log&quot;, allowEmptyArchive: false
 
                         echo &quot;Publishing DAST report...&quot;
                         publishHTML(target: [
-                            allowMissing: true,
+                            allowMissing: false,
                             alwaysLinkToLastBuild: true,
                             keepAll: true,
                             reportDir: &apos;.&apos;,
