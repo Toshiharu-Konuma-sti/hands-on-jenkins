@@ -124,24 +124,26 @@
 
                         echo &quot;Listing workspace files before archiving...&quot;
                         sh &apos;ls -la&apos;
-
-                        echo &quot;Archiving artifacts...&quot;
-                        archiveArtifacts artifacts: &quot;${env.ZAP_REPORT_NAME}, app.log&quot;, allowEmptyArchive: false
-
-                        echo &quot;Publishing DAST report...&quot;
-                        publishHTML(target: [
-                            allowMissing: false,
-                            alwaysLinkToLastBuild: true,
-                            keepAll: true,
-                            reportDir: &apos;.&apos;,
-                            reportFiles: &quot;${env.ZAP_REPORT_NAME}&quot;,
-                            reportName: &apos;DAST Scan Report&apos;
-                        ])
                     }
                 }
             }
+            post {
+                always {
+                    echo &quot;Archiving artifacts...&quot;
+                    archiveArtifacts artifacts: &quot;${env.ZAP_REPORT_NAME}, app.log&quot;, allowEmptyArchive: false
+                    
+                    echo &quot;Publishing DAST report...&quot;
+                    publishHTML(target: [
+                        allowMissing: false,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: &apos;.&apos;,
+                        reportFiles: &quot;${env.ZAP_REPORT_NAME}&quot;,
+                        reportName: &apos;DAST Scan Report&apos;
+                    ])
+                }
+            }
         }
-
 
     }
     post{

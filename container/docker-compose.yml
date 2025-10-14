@@ -27,6 +27,8 @@ services:
     build:
       context: ./jenkins
     image: hands-on/jenkins:latest
+    environment:
+      - JAVA_OPTS='-Dhudson.model.DirectoryBrowserSupport.CSP="style-src ''self'' ''unsafe-inline'';"'
     volumes:
       - ./jenkins/my-config:/var/jenkins_home/my-config:ro
       - /var/run/docker.sock:/var/run/docker.sock
