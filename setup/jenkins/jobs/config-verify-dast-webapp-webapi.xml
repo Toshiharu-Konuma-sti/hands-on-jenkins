@@ -29,7 +29,7 @@
     }
     environment {
         GIT_REPO_URL = &apos;http://gitlab:13000/root/webapp-webapi.git&apos;
-        JAR_FILE_PATTERN = &apos;build/libs/apisl.handson.rollingdice.webapp.webapi-*-SNAPSHOT.jar&apos;
+        JAR_FILE_PATTERN = &apos;webapi/build/libs/apisl.handson.rollingdice.webapp.webapi-*-SNAPSHOT.jar&apos;
         ARTIFACTORY_REPO = &apos;hands-on-rollingdice-webapp-webapi&apos;
         ARTIFACTORY_VIRTUAL_REPO = &apos;gradle-virtual&apos;
         
@@ -38,17 +38,31 @@
         ZAP_REPORT_NAME = &quot;zap-baseline-report.html&quot;
     }
     stages{
+        stage(&quot;Clean up a local environment&quot;){
+            steps{
+                echo &quot;### START: clean up the cloned directoy&quot;
+                deleteDir()
+            }
+        }
         stage(&quot;Checkout a repository from GitLab&quot;){
             steps{
                echo &quot;### START: clone a repository from GitLab&quot;
-               git branch: &apos;main&apos;, url: &quot;${env.GIT_REPO_URL}&quot;
+               dir(&apos;webapi&apos;) {
+                   git url: &quot;${env.GIT_REPO_URL}&quot;, branch: &apos;main&apos;
+               }
+               sh &apos;ls -la&apos;
+               sh &apos;ls -la webapi&apos;
             }
         }
         stage(&apos;Build with JFrog CLI&apos;) {
             steps {
                 echo &quot;### START: build with jfrog cli&quot;
-                jf &quot;gradle-config --repo-deploy ${ARTIFACTORY_REPO} --repo-resolve ${ARTIFACTORY_VIRTUAL_REPO}&quot;
-                jf &quot;gradle assemble -x cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
+                dir(&apos;webapi&apos;) {
+                    jf &quot;gradle-config --repo-deploy ${ARTIFACTORY_REPO} --repo-resolve ${ARTIFACTORY_VIRTUAL_REPO}&quot;
+                    jf &quot;gradle assemble -x cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
+                }
+                sh &apos;ls -la&apos;
+                sh &apos;ls -la webapi&apos;
             }
         }
 
@@ -65,18 +79,64 @@
                     echo &quot;Found JAR file: ${jarFile}&quot;
 
                     def containerName = &quot;zap-scan-${BUILD_NUMBER}&quot;
+                    def mysqlContainerName = &quot;mysql-${BUILD_NUMBER}&quot;
 
                     try {
+
+                        echo &quot;### START: Checkout MySQL configuration&quot;
+                        dir(&apos;webapp-repo&apos;) {
+                            git url: &apos;https://github.com/Toshiharu-Konuma-sti/hands-on-rollingdice-webapp.git&apos;, branch: &apos;main&apos;
+                        }
+                        sh &apos;ls -la&apos;
+                        sh &apos;ls -la webapp-repo&apos;
+
+                        echo &quot;### START: Launching MySQL container&quot;
+                        echo &quot;${WORKSPACE}&quot;
+                        sh &quot;ls -lF ${WORKSPACE}/webapp-repo/&quot;
+                        sh &quot;ls -lF ${WORKSPACE}/webapp-repo/mysql/&quot;
+                        sh &quot;ls -lF ${WORKSPACE}/webapp-repo/mysql/init/&quot;
                         sh &quot;&quot;&quot;
-                           nohup java -jar ${jarFile} \
+                            docker create --name ${mysqlContainerName} \\
+                                -h zap-mysql \\
+                                --network intra-net \\
+                                -e MYSQL_ROOT_PASSWORD=password \\
+                                -e MYSQL_DATABASE=hands_on_db \\
+                                -e MYSQL_USER=myuser \\
+                                -e MYSQL_PASSWORD=mypass \\
+                                -e TZ=&quot;Asia/Tokyo&quot; \\
+                                mysql:8.0
+                        &quot;&quot;&quot;
+
+                        echo &quot;### 2. Copying configuration files to MySQL container&quot;
+                        sh &quot;docker cp ${WORKSPACE}/webapp-repo/mysql/config/my.cnf ${mysqlContainerName}:/etc/mysql/conf.d/my.cnf&quot;
+                        sh &quot;docker cp ${WORKSPACE}/webapp-repo/mysql/init/init.sql ${mysqlContainerName}:/docker-entrypoint-initdb.d/init.sql&quot;
+                        
+                        echo &quot;### 3. Starting MySQL container&quot;
+                        sh &quot;docker start ${mysqlContainerName}&quot;
+
+                        echo &quot;Waiting for MySQL server to start...&quot;
+                        timeout(time: 2, unit: &apos;MINUTES&apos;) {
+                            sh &quot;until docker exec ${mysqlContainerName} mysqladmin ping -h 127.0.0.1 --silent; do echo &apos;Waiting for mysql...&apos;; sleep 5; done&quot;
+                        }
+                        echo &quot;MySQL is up and running.&quot;
+
+
+                        sh &quot;docker logs ${mysqlContainerName}&quot;
+                        sh &quot;docker exec ${mysqlContainerName} ls -lF /docker-entrypoint-initdb.d/&quot;
+                        sh &quot;docker exec ${mysqlContainerName} mysql -u myuser -pmypass -e &apos;SHOW DATABASES; USE hands_on_db; SHOW TABLES;&apos;&quot;
+
+
+                        sh &quot;&quot;&quot;
+                            export SPRING_PROFILES_ACTIVE=zap
+                            nohup java -jar ${jarFile} \
                                 --management.otlp.metrics.export.enabled=false \
                                 --otel.sdk.disabled=true \
                                 &gt; app.log 2&gt;&amp;1 &amp; echo \$! &gt; app.pid
                         &quot;&quot;&quot;
                         echo &quot;Waiting for application to start...&quot;
-                        
+
                         timeout(time: 1, unit: &apos;MINUTES&apos;) {
-                            sh &quot;until curl -s -o /dev/null -w &apos;%{http_code}&apos; ${env.HEALTH_CHECK_URL} | grep -q &apos;^[24]&apos;; do echo &apos;Waiting for app...&apos;; sleep 5; done&quot;
+                            sh &quot;until curl -s -o /dev/null -w &apos;%{http_code}&apos; ${env.HEALTH_CHECK_URL} | grep -q &apos;^[245]&apos;; do echo &apos;Waiting for app...&apos;; sleep 5; done&quot;
                         }
 
                         echo &quot;Application is up and running.&quot;
@@ -89,6 +149,7 @@
                         def jenkinsUser = sh(script: &apos;id -u&apos;, returnStdout: true).trim()
                         def jenkinsGroup = sh(script: &apos;id -g&apos;, returnStdout: true).trim()
 
+                        sh &apos;export SPRING_PROFILES_ACTIVE=zap&apos;
                         sh &quot;&quot;&quot;
                             docker run --name ${containerName} --network host \\
                                 -w /zap/wrk \\
@@ -106,20 +167,24 @@
 
                     } finally {
 
+                        if (mysqlContainerName) {
+                            echo &quot;Cleaning up MySQL container: ${mysqlContainerName}&quot;
+                            sh &quot;docker rm -f ${mysqlContainerName} || true&quot;
+                        }
+
                         if (containerName) {
                             echo &quot;Cleaning up ZAP container: ${containerName}&quot;
                             sh &quot;docker rm -f ${containerName} || true&quot;
                         }
 
-                        if (fileExists(&apos;app.log&apos;)) {
+                        if (fileExists(&apos;webapi/app.log&apos;)) {
                             echo &quot;--- Displaying application log (app.log) ---&quot;
-                            sh &apos;cat app.log&apos;
+                            sh &apos;cat webapi/app.log&apos;
                             echo &quot;--------------------------------------------&quot;
                         }
-                        
                         echo &quot;Stopping application...&quot;
-                        if (fileExists(&apos;app.pid&apos;)) {
-                            sh &apos;kill `cat app.pid` || true&apos;
+                        if (fileExists(&apos;webapi/app.pid&apos;)) {
+                            sh &apos;kill `cat webapi/app.pid` || true&apos;
                         }
 
                         echo &quot;Listing workspace files before archiving...&quot;
@@ -139,7 +204,7 @@
                         keepAll: true,
                         reportDir: &apos;.&apos;,
                         reportFiles: &quot;${env.ZAP_REPORT_NAME}&quot;,
-                        reportName: &apos;DAST Scan Report&apos;
+                        reportName: &apos;DAST Scan Report(webapi)&apos;
                     ])
                 }
             }
