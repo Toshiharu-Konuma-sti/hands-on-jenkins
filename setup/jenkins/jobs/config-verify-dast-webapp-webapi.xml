@@ -33,9 +33,9 @@
         ARTIFACTORY_REPO = &apos;hands-on-rollingdice-webapp-webapi&apos;
         ARTIFACTORY_VIRTUAL_REPO = &apos;gradle-virtual&apos;
         
-        HEALTH_CHECK_URL = &quot;http://localhost:8182/actuator/health&quot;
-        TARGET_URL = &apos;http://localhost:8182&apos;
-        ZAP_REPORT_NAME = &apos;zap-baseline-report.html&apos;
+        TARGET_URL = &quot;http://localhost:8182&quot;
+        HEALTH_CHECK_URL = &quot;${TARGET_URL}/actuator/health&quot;
+        ZAP_REPORT_NAME = &quot;zap-baseline-report.html&quot;
     }
     stages{
         stage(&quot;Checkout a repository from GitLab&quot;){
@@ -88,15 +88,6 @@
                         sh &apos;id&apos;
                         def jenkinsUser = sh(script: &apos;id -u&apos;, returnStdout: true).trim()
                         def jenkinsGroup = sh(script: &apos;id -g&apos;, returnStdout: true).trim()
-                        
-//                        sh &quot;&quot;&quot;
-//                            docker run --rm --network host \\
-//                                -w /zap/wrk \\
-//                                -u ${jenkinsUser}:${jenkinsGroup} \\
-//                                -v ${WORKSPACE}:/zap/wrk/:rw \\
-//                                ghcr.io/zaproxy/zaproxy:stable \\
-//                                /bin/bash -c &quot;zap-baseline.py -t ${env.TARGET_URL} -r ${env.ZAP_REPORT_NAME} -w zap_warn_rules.xml -l WARN -d &amp;&amp; echo &apos;--- ZAP Container ls -la /zap/wrk ---&apos; &amp;&amp; ls -la /zap/wrk&quot;
-//                        &quot;&quot;&quot;
 
                         sh &quot;&quot;&quot;
                             docker run --name ${containerName} --network host \\
