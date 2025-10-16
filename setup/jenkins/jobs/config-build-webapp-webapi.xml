@@ -250,7 +250,7 @@ pipeline{
                 jf &quot;gradle javadoc -x cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
             }
             post {
-                success {
+                always {
                     echo &quot;### START: publish a javadoc using javadoc plugin&quot;
                     javadoc javadocDir: &apos;build/docs/javadoc&apos;, keepAll: true
                 }
