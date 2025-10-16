@@ -49,7 +49,7 @@
                 deleteDir()
             }
         }
-        stage(&quot;Checkout a repository from GitLab and Build&quot;){
+        stage(&quot;Checkout a repository from GitLab&quot;){
             steps{
                 script {
                     def services = env.SERVICES_LIST.split(&apos;,&apos;)
@@ -59,6 +59,19 @@
                         dir(serviceName) {
                             echo &quot;### [${serviceName}] START: Cloning repository from ${serviceGitUrl}&quot;
                             git url: serviceGitUrl, branch: &apos;main&apos;
+                        }
+                    }
+                }
+            }
+        }
+        stage(&quot;Build a repository&quot;){
+            steps{
+                script {
+                    def services = env.SERVICES_LIST.split(&apos;,&apos;)
+                    services.each { serviceName -&gt;
+                        echo &quot;--- Processing service: ${serviceName} ---&quot;
+                        def serviceGitUrl = &quot;http://gitlab:13000/root/webapp-${serviceName}.git&quot;
+                        dir(serviceName) {
                             echo &quot;### [${serviceName}] START: Building with Gradle&quot;
                             sh &quot;./gradlew assemble -x cyclonedxBom --info&quot;
                         }
@@ -66,7 +79,18 @@
                 }
             }
         }
-
+        stage(&quot;Generate an OpenAPI&quot;){
+            steps{
+                script {
+                    echo &quot;### START: generate an openapi&quot;
+                    def serviceName = &apos;webapi&apos;
+                    dir(serviceName) {
+                        echo &quot;### [${serviceName}] START: Generate a json format OpenAPI&quot;
+                        sh &quot;./gradlew generateOpenApiDocs --no-configuration-cache --info&quot;
+                    }
+                }
+            }
+        }
         stage(&apos;Run DAST with OWASP ZAP (Docker)&apos;) {
             steps {
                 script {
@@ -174,13 +198,26 @@
                         sh &quot;docker cp ${zapContainerNameUi}:/zap/wrk/${env.ZAP_REPORT_NAME_UI} .&quot;
 
                         try {
+//                            sh &quot;&quot;&quot;
+//                                docker run --name ${zapContainerNameApi} --network host \\
+//                                    -w /zap/wrk \\
+//                                    -u ${jenkinsUser}:${jenkinsGroup} \\
+//                                    ghcr.io/zaproxy/zaproxy:stable \\
+//                                    /bin/bash -c &quot;zap-baseline.py -t ${env.TARGET_URL_API} -r ${env.ZAP_REPORT_NAME_API} -w zap_warn_rules.xml -l WARN -d &amp;&amp; echo &apos;--- ZAP Container ls -la /zap/wrk ---&apos; &amp;&amp; ls -la /zap/wrk&quot;
+//                            &quot;&quot;&quot;
+                            echo &quot;START: Creaing OWASP Zap container&quot;
                             sh &quot;&quot;&quot;
-                                docker run --name ${zapContainerNameApi} --network host \\
-                                    -w /zap/wrk \\
+                                docker create --name ${zapContainerNameApi} --network host \\
+                                    -w /zap/wrk/ \\
                                     -u ${jenkinsUser}:${jenkinsGroup} \\
                                     ghcr.io/zaproxy/zaproxy:stable \\
-                                    /bin/bash -c &quot;zap-baseline.py -t ${env.TARGET_URL_API} -r ${env.ZAP_REPORT_NAME_API} -w zap_warn_rules.xml -l WARN -d &amp;&amp; echo &apos;--- ZAP Container ls -la /zap/wrk ---&apos; &amp;&amp; ls -la /zap/wrk&quot;
+                                    /bin/bash -c &quot;zap-api-scan.py -t /zap/wrk/openapi.json -f openapi -O http://localhost:8182 -r ${env.ZAP_REPORT_NAME_API} -d&quot;
                             &quot;&quot;&quot;
+                            echo &quot;START: Copying OpenAPI file to OWASP Zap container&quot;
+                            sh &quot;docker cp ${WORKSPACE}/webapi/build/docs/openapi/openapi.json ${zapContainerNameApi}:/zap/wrk/openapi.json&quot;
+                            echo &quot;START: Starting OWASP Zap container&quot;
+                            sh &quot;docker start -a ${zapContainerNameApi}&quot;
+
                         } catch (e) {
                             echo &quot;DAST scan to webapi found warnings, but proceeding. Marking build as UNSTABLE.&quot;
                             currentBuild.result = &apos;UNSTABLE&apos;

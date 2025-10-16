@@ -89,7 +89,7 @@ pipeline{
                git branch: &apos;main&apos;, url: &quot;${env.GIT_REPO_URL}&quot;
             }
         }
-        stage(&apos;Build with JFrog CLI&apos;) {
+        stage(&apos;Build a repository with JFrog CLI&apos;) {
             steps {
                 echo &quot;### START: build with jfrog cli&quot;
                 jf &quot;gradle-config --repo-deploy ${ARTIFACTORY_REPO} --repo-resolve ${ARTIFACTORY_VIRTUAL_REPO}&quot;
