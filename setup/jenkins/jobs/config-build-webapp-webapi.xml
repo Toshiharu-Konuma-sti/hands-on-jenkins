@@ -249,11 +249,31 @@ pipeline{
                 echo &quot;### START: generate a javadoc&quot;
                 jf &quot;gradle javadoc -x cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
             }
+            post {
+                success {
+                    echo &quot;### START: publish a javadoc using javadoc plugin&quot;
+                    javadoc javadocDir: &apos;build/docs/javadoc&apos;, keepAll: true
+                }
+            }
         }
-        stage(&apos;Publish a Javadoc&apos;) {
+        stage(&apos;Generate an OpenAPI&apos;) {
             steps {
-                echo &quot;### START: publish a javadoc using javadoc plugin&quot;
-                javadoc javadocDir: &apos;build/docs/javadoc&apos;, keepAll: true
+                echo &quot;### START: generate the json format openapi&quot;
+                jf &quot;gradle generateOpenApiDocs --no-configuration-cache --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
+                echo &quot;### START: convert the html format openapi from the json format it&quot;
+                jf &quot;gradle openApiGenerate --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
+            }
+            post {
+                success {
+                    publishHTML(
+                        allowMissing: false,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: &apos;build/docs/swagger&apos;,
+                        reportFiles: &apos;index.html&apos;,
+                        reportName: &apos;OpenAPI Specification&apos;
+                    )
+                }
             }
         }
         stage(&apos;Release an artifact to Artifactory&apos;) {
