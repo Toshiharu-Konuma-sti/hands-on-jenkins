@@ -39,6 +39,8 @@
         TARGET_URL_UI = &quot;http://localhost:8181&quot;
         HEALTH_CHECK_URL_UI = &quot;${TARGET_URL_UI}/actuator/health&quot;
         ZAP_REPORT_NAME_UI = &quot;zap-baseline-report-ui.html&quot;
+        
+        TIMEOUT_EXP = 2
     }
     stages{
         stage(&quot;Clean up a local environment&quot;){
@@ -82,8 +84,9 @@
                     }
                     echo &quot;Found JAR file: ${jarFile_ui}&quot;
 
-                    def zapContainerName = &quot;zap-scan-${BUILD_NUMBER}&quot;
                     def mysqlContainerName = &quot;mysql-${BUILD_NUMBER}&quot;
+                    def zapContainerNameUi = &quot;zap-scan-ui-${BUILD_NUMBER}&quot;
+                    def zapContainerNameApi = &quot;zap-scan-api-${BUILD_NUMBER}&quot;
 
                     try {
 
@@ -96,7 +99,7 @@
                         sh &quot;&quot;&quot;
                             docker create --name ${mysqlContainerName} \\
                                 -h zap-mysql \\
-                                --network intra-net \\
+                                --network host \\
                                 -e MYSQL_ROOT_PASSWORD=password \\
                                 -e MYSQL_DATABASE=hands_on_db \\
                                 -e MYSQL_USER=myuser \\
@@ -104,6 +107,7 @@
                                 -e TZ=&quot;Asia/Tokyo&quot; \\
                                 mysql:8.0
                         &quot;&quot;&quot;
+//                                --network intra-net \\
 
                         echo &quot;### START: Copying configuration files to MySQL container&quot;
                         sh &quot;docker cp ${WORKSPACE}/webapp-repo/mysql/config/my.cnf ${mysqlContainerName}:/etc/mysql/conf.d/my.cnf&quot;
@@ -113,7 +117,7 @@
                         sh &quot;docker start ${mysqlContainerName}&quot;
 
                         echo &quot;Waiting for MySQL server to start...&quot;
-                        timeout(time: 2, unit: &apos;MINUTES&apos;) {
+                        timeout(time: TIMEOUT_EXP, unit: &apos;MINUTES&apos;) {
                             sh &quot;until docker exec ${mysqlContainerName} mysqladmin ping -h 127.0.0.1 --silent; do echo &apos;Waiting for mysql...&apos;; sleep 5; done&quot;
                         }
                         echo &quot;MySQL is up and running.&quot;
@@ -124,10 +128,11 @@
                             nohup java -jar ${jarFile_api} \
                                 --management.otlp.metrics.export.enabled=false \
                                 --otel.sdk.disabled=true \
+                                --spring.datasource.url=jdbc:mysql://127.0.0.1:3306/hands_on_db \
                                 &gt; webapp-webapi.log 2&gt;&amp;1 &amp; echo \$! &gt; webapp-webapi.pid
                         &quot;&quot;&quot;
-                        echo &quot;Waiting for application to start...&quot;
-                        timeout(time: 1, unit: &apos;MINUTES&apos;) {
+                        echo &quot;Waiting for application api to start...&quot;
+                        timeout(time: TIMEOUT_EXP, unit: &apos;MINUTES&apos;) {
                             sh &quot;until curl -s -o /dev/null -w &apos;%{http_code}&apos; ${env.HEALTH_CHECK_URL_API} | grep -q &apos;^[245]&apos;; do echo &apos;Waiting for app...&apos;; sleep 5; done&quot;
                         }
                         echo &quot;Application API is up and running.&quot;
@@ -140,8 +145,8 @@
                                 --otel.sdk.disabled=true \
                                 &gt; webapp-webui.log 2&gt;&amp;1 &amp; echo \$! &gt; webapp-webui.pid
                         &quot;&quot;&quot;
-                        echo &quot;Waiting for application to start...&quot;
-                        timeout(time: 1, unit: &apos;MINUTES&apos;) {
+                        echo &quot;Waiting for application ui to start...&quot;
+                        timeout(time: TIMEOUT_EXP, unit: &apos;MINUTES&apos;) {
                             sh &quot;until curl -s -o /dev/null -w &apos;%{http_code}&apos; ${env.HEALTH_CHECK_URL_UI} | grep -q &apos;^[245]&apos;; do echo &apos;Waiting for app...&apos;; sleep 5; done&quot;
                         }
                         echo &quot;Application UI is up and running.&quot;
@@ -155,63 +160,67 @@
 
                         try {
                             sh &quot;&quot;&quot;
-                                docker run --name ${zapContainerName} --network host \\
+                                docker run --name ${zapContainerNameUi} --network host \\
                                     -w /zap/wrk \\
                                     -u ${jenkinsUser}:${jenkinsGroup} \\
-                                    -v ${WORKSPACE}:/zap/wrk/:rw \\
                                     ghcr.io/zaproxy/zaproxy:stable \\
                                     /bin/bash -c &quot;zap-baseline.py -t ${env.TARGET_URL_UI} -r ${env.ZAP_REPORT_NAME_UI} -w zap_warn_rules.xml -l WARN -d &amp;&amp; echo &apos;--- ZAP Container ls -la /zap/wrk ---&apos; &amp;&amp; ls -la /zap/wrk&quot;
                             &quot;&quot;&quot;
                         } catch (e) {
-                            echo &quot;DAST scan found warnings, but proceeding. Marking build as UNSTABLE.&quot;
+                            echo &quot;DAST scan to webui found warnings, but proceeding. Marking build as UNSTABLE.&quot;
                             currentBuild.result = &apos;UNSTABLE&apos;
                         }
+                        echo &quot;Copying &apos;${env.ZAP_REPORT_NAME_UI}&apos; from container &apos;${zapContainerNameUi}&apos; to workspace...&quot;
+                        sh &quot;docker cp ${zapContainerNameUi}:/zap/wrk/${env.ZAP_REPORT_NAME_UI} .&quot;
 
-                        echo &quot;Copying &apos;${env.ZAP_REPORT_NAME_UI}&apos; from container &apos;${zapContainerName}&apos; to workspace...&quot;
-                        sh &quot;docker cp ${zapContainerName}:/zap/wrk/${env.ZAP_REPORT_NAME_UI} .&quot;
-
-//                        sh &quot;&quot;&quot;
-//                            docker run --name ${zapContainerName} --network host \\
-//                                -w /zap/wrk \\
-//                                -u ${jenkinsUser}:${jenkinsGroup} \\
-//                                -v ${WORKSPACE}:/zap/wrk/:rw \\
-//                                ghcr.io/zaproxy/zaproxy:stable \\
-//                                /bin/bash -c &quot;zap-baseline.py -t ${env.TARGET_URL_API} -r ${env.ZAP_REPORT_NAME_API} -w zap_warn_rules.xml -l WARN -d &amp;&amp; echo &apos;--- ZAP Container ls -la /zap/wrk ---&apos; &amp;&amp; ls -la /zap/wrk&quot;
-//                        &quot;&quot;&quot;
-
-//                        echo &quot;Copying &apos;${env.ZAP_REPORT_NAME_API}&apos; from container &apos;${zapContainerName}&apos; to workspace...&quot;
-//                        sh &quot;docker cp ${zapContainerName}:/zap/wrk/${env.ZAP_REPORT_NAME_API} .&quot;
+                        try {
+                            sh &quot;&quot;&quot;
+                                docker run --name ${zapContainerNameApi} --network host \\
+                                    -w /zap/wrk \\
+                                    -u ${jenkinsUser}:${jenkinsGroup} \\
+                                    ghcr.io/zaproxy/zaproxy:stable \\
+                                    /bin/bash -c &quot;zap-baseline.py -t ${env.TARGET_URL_API} -r ${env.ZAP_REPORT_NAME_API} -w zap_warn_rules.xml -l WARN -d &amp;&amp; echo &apos;--- ZAP Container ls -la /zap/wrk ---&apos; &amp;&amp; ls -la /zap/wrk&quot;
+                            &quot;&quot;&quot;
+                        } catch (e) {
+                            echo &quot;DAST scan to webapi found warnings, but proceeding. Marking build as UNSTABLE.&quot;
+                            currentBuild.result = &apos;UNSTABLE&apos;
+                        }
+                        echo &quot;Copying &apos;${env.ZAP_REPORT_NAME_API}&apos; from container &apos;${zapContainerNameApi}&apos; to workspace...&quot;
+                        sh &quot;docker cp ${zapContainerNameApi}:/zap/wrk/${env.ZAP_REPORT_NAME_API} .&quot;
                         
-//                        echo &quot;Copying &apos;zap_warn_rules.xml&apos; from container &apos;${zapContainerName}&apos; to workspace...&quot;
-//                        sh &quot;docker cp ${zapContainerName}:/zap/wrk/zap_warn_rules.xml .&quot;
-
                     } finally {
 
-                        if (mysqlContainerName) {
-                            echo &quot;Cleaning up MySQL container: ${mysqlContainerName}&quot;
+                        def containerId = sh(script: &quot;docker ps -a -q --filter &apos;name=${mysqlContainerName}&apos;&quot;, returnStdout: true).trim()
+                        if (containerId) {
+                            echo &quot;Found existing container &apos;${mysqlContainerName}&apos; (${containerId}). Cleaning it up...&quot;
                             sh &quot;docker rm -f ${mysqlContainerName} || true&quot;
                         }
-
-                        if (zapContainerName) {
-                            echo &quot;Cleaning up ZAP container: ${zapContainerName}&quot;
-                            sh &quot;docker rm -f ${zapContainerName} || true&quot;
+                        containerId = sh(script: &quot;docker ps -a -q --filter &apos;name=${zapContainerNameUi}&apos;&quot;, returnStdout: true).trim()
+                        if (containerId) {
+                            echo &quot;Found existing container &apos;${zapContainerNameUi}&apos; (${containerId}). Cleaning it up...&quot;
+                            sh &quot;docker rm -f ${zapContainerNameUi} || true&quot;
+                        }
+                        containerId = sh(script: &quot;docker ps -a -q --filter &apos;name=${zapContainerNameApi}&apos;&quot;, returnStdout: true).trim()
+                        if (containerId) {
+                            echo &quot;Found existing container &apos;${zapContainerNameApi}&apos; (${containerId}). Cleaning it up...&quot;
+                            sh &quot;docker rm -f ${zapContainerNameApi}&quot;
                         }
 
-                        if (fileExists(&apos;webapp-webapi.log&apos;)) {
-                            echo &quot;--- Displaying application log (webapp-webapi.log) ---&quot;
-                            sh &apos;cat webapp-webapi.log&apos;
-                            echo &quot;--------------------------------------------&quot;
-                        }
+//                        if (fileExists(&apos;webapp-webapi.log&apos;)) {
+//                            echo &quot;--- Displaying application log (webapp-webapi.log) ---&quot;
+//                            sh &apos;cat webapp-webapi.log&apos;
+//                            echo &quot;--------------------------------------------&quot;
+//                        }
                         echo &quot;Stopping application...&quot;
                         if (fileExists(&apos;webapp-webapi.pid&apos;)) {
                             sh &apos;kill `cat webapp-webapi.pid` || true&apos;
                         }
 
-                        if (fileExists(&apos;webapp-webui.log&apos;)) {
-                            echo &quot;--- Displaying application log (webapp-webui.log) ---&quot;
-                            sh &apos;cat webapp-webui.log&apos;
-                            echo &quot;--------------------------------------------&quot;
-                        }
+//                        if (fileExists(&apos;webapp-webui.log&apos;)) {
+//                            echo &quot;--- Displaying application log (webapp-webui.log) ---&quot;
+//                            sh &apos;cat webapp-webui.log&apos;
+//                            echo &quot;--------------------------------------------&quot;
+//                        }
                         echo &quot;Stopping application...&quot;
                         if (fileExists(&apos;webapp-webui.pid&apos;)) {
                             sh &apos;kill `cat webapp-webui.pid` || true&apos;
@@ -224,18 +233,39 @@
             }
             post {
                 always {
-                    echo &quot;Archiving artifacts...&quot;
-                    archiveArtifacts artifacts: &quot;${env.ZAP_REPORT_NAME_UI}, app.log&quot;, allowEmptyArchive: false
-                    
-                    echo &quot;Publishing DAST report...&quot;
-                    publishHTML(target: [
-                        allowMissing: false,
-                        alwaysLinkToLastBuild: true,
-                        keepAll: true,
-                        reportDir: &apos;.&apos;,
-                        reportFiles: &quot;${env.ZAP_REPORT_NAME_UI}&quot;,
-                        reportName: &apos;DAST Scan Report&apos;
-                    ])
+                    script {
+                        echo &quot;### STARt: archiving and publishing for webui&quot;
+                        if (fileExists(ZAP_REPORT_NAME_UI)) {
+                            echo &quot;Archiving artifacts...&quot;
+                            archiveArtifacts artifacts: &quot;${env.ZAP_REPORT_NAME_UI}, webapp-webui.log&quot;, allowEmptyArchive: false
+                            echo &quot;Publishing DAST report...&quot;
+                            publishHTML(
+                                allowMissing: false,
+                                alwaysLinkToLastBuild: true,
+                                keepAll: true,
+                                reportDir: &apos;.&apos;,
+                                reportFiles: &quot;${env.ZAP_REPORT_NAME_UI}&quot;,
+                                reportName: &apos;DAST Scan Report (webui)&apos;
+                            )
+                        }
+                        if (fileExists(ZAP_REPORT_NAME_API)) {
+                            echo &quot;Archiving artifacts...&quot;
+                            archiveArtifacts artifacts: &quot;${env.ZAP_REPORT_NAME_API}, webpp-webapi.log&quot;, allowEmptyArchive: false
+                            echo &quot;Publishing DAST report...&quot;
+                            publishHTML(
+                                allowMissing: false,
+                                alwaysLinkToLastBuild: true,
+                                keepAll: true,
+                                reportDir: &apos;.&apos;,
+                                reportFiles: &quot;${env.ZAP_REPORT_NAME_API}&quot;,
+                                reportName: &apos;DAST Scan Report (webapi)&apos;
+                            )
+                        }
+
+
+
+
+                    }
                 }
             }
         }
