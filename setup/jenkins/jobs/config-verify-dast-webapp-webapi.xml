@@ -187,8 +187,10 @@
                                 docker run --name ${zapContainerNameUi} --network host \\
                                     -w /zap/wrk \\
                                     -u ${jenkinsUser}:${jenkinsGroup} \\
-                                    ghcr.io/zaproxy/zaproxy:stable \\
-                                    /bin/bash -c &quot;zap-baseline.py -t ${env.TARGET_URL_UI} -r ${env.ZAP_REPORT_NAME_UI} -w zap_warn_rules.xml -l WARN -d &amp;&amp; echo &apos;--- ZAP Container ls -la /zap/wrk ---&apos; &amp;&amp; ls -la /zap/wrk&quot;
+                                    ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \\
+                                    -t ${env.TARGET_URL_UI} -r ${env.ZAP_REPORT_NAME_UI} \\
+                                    -w zap_warn_rules.xml -l WARN -d \\
+                                    -z &quot;-config scanner.delayInMs=500 -config spider.threadCount=1&quot;
                             &quot;&quot;&quot;
                         } catch (e) {
                             echo &quot;DAST scan to webui found warnings, but proceeding. Marking build as UNSTABLE.&quot;
@@ -210,8 +212,10 @@
                                 docker create --name ${zapContainerNameApi} --network host \\
                                     -w /zap/wrk/ \\
                                     -u ${jenkinsUser}:${jenkinsGroup} \\
-                                    ghcr.io/zaproxy/zaproxy:stable \\
-                                    /bin/bash -c &quot;zap-api-scan.py -t /zap/wrk/openapi.json -f openapi -O http://localhost:8182 -r ${env.ZAP_REPORT_NAME_API} -d&quot;
+                                    ghcr.io/zaproxy/zaproxy:stable zap-api-scan.py \\
+                                    -t /zap/wrk/openapi.json -f openapi -O http://localhost:8182 \\
+                                    -r ${env.ZAP_REPORT_NAME_API} -d \\
+                                    -z &quot;-config scanner.delayInMs=500 -config spider.threadCount=1&quot;
                             &quot;&quot;&quot;
                             echo &quot;START: Copying OpenAPI file to OWASP Zap container&quot;
                             sh &quot;docker cp ${WORKSPACE}/webapi/build/docs/openapi/openapi.json ${zapContainerNameApi}:/zap/wrk/openapi.json&quot;
@@ -287,7 +291,7 @@
                         }
                         if (fileExists(ZAP_REPORT_NAME_API)) {
                             echo &quot;Archiving artifacts...&quot;
-                            archiveArtifacts artifacts: &quot;${env.ZAP_REPORT_NAME_API}, webpp-webapi.log&quot;, allowEmptyArchive: false
+                            archiveArtifacts artifacts: &quot;${env.ZAP_REPORT_NAME_API}, webapp-webapi.log&quot;, allowEmptyArchive: false
                             echo &quot;Publishing DAST report...&quot;
                             publishHTML(
                                 allowMissing: false,

@@ -539,9 +539,10 @@ show_information()
 	echo "  8. Run the setup script in the console: \e[4msetup/SETUP_HANDS-ON.sh\e[m"
 	echo "- CI/CD Instructions:"
 	echo "  1. Run the script in the console. It will clone GitLab repository and add the webapp codes: \e[4mtry-my-hand/PREPARE_CODING.sh\e[m"
-	echo "  2. Go to GitLab and merge the branch in the repository."
-	echo "  3. Go to Jenkins and check that the job has started."
-	echo "  4. Run the deployment job in Jenkins."
+	echo "  2. Push a local repository including webapp codes to GitLab."
+	echo "  3. Go to GitLab and merge the branch in the repository."
+	echo "  4. Go to Jenkins and check that the job has started."
+	echo "  5. Run the deployment job in Jenkins."
 	echo ""
 }
 # // }}}
