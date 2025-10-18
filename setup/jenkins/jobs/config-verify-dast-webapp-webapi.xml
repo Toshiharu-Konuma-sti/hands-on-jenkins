@@ -33,7 +33,7 @@
         JAR_FILE_PATTERN_API = &apos;webapi/build/libs/apisl.handson.rollingdice.webapp.webapi-*-SNAPSHOT.jar&apos;
         TARGET_URL_API = &quot;http://localhost:8182&quot;
         HEALTH_CHECK_URL_API = &quot;${TARGET_URL_API}/actuator/health&quot;
-        ZAP_REPORT_NAME_API = &quot;zap-baseline-report-api.html&quot;
+        ZAP_REPORT_NAME_API = &quot;zap-api-scan-report-api.html&quot;
 
         JAR_FILE_PATTERN_UI = &apos;webui/build/libs/apisl.handson.rollingdice.webapp.webui-*-SNAPSHOT.jar&apos;
         TARGET_URL_UI = &quot;http://localhost:8181&quot;
@@ -108,7 +108,8 @@
                     }
                     echo &quot;Found JAR file: ${jarFile_ui}&quot;
 
-                    def mysqlContainerName = &quot;mysql-${BUILD_NUMBER}&quot;
+//                    def mysqlContainerName = &quot;mysql-${BUILD_NUMBER}&quot;
+                    def mysqlContainerName = &quot;zap-mysql&quot;
                     def zapContainerNameUi = &quot;zap-scan-ui-${BUILD_NUMBER}&quot;
                     def zapContainerNameApi = &quot;zap-scan-api-${BUILD_NUMBER}&quot;
 
@@ -118,12 +119,11 @@
                         dir(&apos;webapp-repo&apos;) {
                             git url: &apos;https://github.com/Toshiharu-Konuma-sti/hands-on-rollingdice-webapp.git&apos;, branch: &apos;main&apos;
                         }
-
                         echo &quot;### START: Creating MySQL container&quot;
                         sh &quot;&quot;&quot;
                             docker create --name ${mysqlContainerName} \\
                                 -h zap-mysql \\
-                                --network host \\
+                                --network intra-net \\
                                 -e MYSQL_ROOT_PASSWORD=password \\
                                 -e MYSQL_DATABASE=hands_on_db \\
                                 -e MYSQL_USER=myuser \\
@@ -152,7 +152,6 @@
                             nohup java -jar ${jarFile_api} \
                                 --management.otlp.metrics.export.enabled=false \
                                 --otel.sdk.disabled=true \
-                                --spring.datasource.url=jdbc:mysql://127.0.0.1:3306/hands_on_db \
                                 &gt; webapp-webapi.log 2&gt;&amp;1 &amp; echo \$! &gt; webapp-webapi.pid
                         &quot;&quot;&quot;
                         echo &quot;Waiting for application api to start...&quot;
@@ -175,23 +174,26 @@
                         }
                         echo &quot;Application UI is up and running.&quot;
 
-
                         echo &quot;### START: DAST scan with OWASP ZAP Docker container&quot;
                         writeFile(file: &apos;zap_warn_rules.xml&apos;, text: &apos;&lt;rules&gt;&lt;/rules&gt;&apos;)
                         sh &apos;id&apos;
                         def jenkinsUser = sh(script: &apos;id -u&apos;, returnStdout: true).trim()
                         def jenkinsGroup = sh(script: &apos;id -g&apos;, returnStdout: true).trim()
 
+//                        sh &quot;sleep 180000&quot;
+
                         try {
                             sh &quot;&quot;&quot;
-                                docker run --name ${zapContainerNameUi} --network host \\
+                                docker run --name ${zapContainerNameUi} --network intra-net \\
                                     -w /zap/wrk \\
                                     -u ${jenkinsUser}:${jenkinsGroup} \\
                                     ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \\
-                                    -t ${env.TARGET_URL_UI} -r ${env.ZAP_REPORT_NAME_UI} \\
+                                    -t http://jenkins:8181 -r ${env.ZAP_REPORT_NAME_UI} \\
                                     -w zap_warn_rules.xml -l WARN -d \\
                                     -z &quot;-config scanner.delayInMs=500 -config spider.threadCount=1&quot;
                             &quot;&quot;&quot;
+//                                  -t ${env.TARGET_URL_UI} -r ${env.ZAP_REPORT_NAME_UI} \\
+//                                  -z &quot;-config scanner.delayInMs=500 -config spider.threadCount=1&quot;
                         } catch (e) {
                             echo &quot;DAST scan to webui found warnings, but proceeding. Marking build as UNSTABLE.&quot;
                             currentBuild.result = &apos;UNSTABLE&apos;
@@ -200,23 +202,17 @@
                         sh &quot;docker cp ${zapContainerNameUi}:/zap/wrk/${env.ZAP_REPORT_NAME_UI} .&quot;
 
                         try {
-//                            sh &quot;&quot;&quot;
-//                                docker run --name ${zapContainerNameApi} --network host \\
-//                                    -w /zap/wrk \\
-//                                    -u ${jenkinsUser}:${jenkinsGroup} \\
-//                                    ghcr.io/zaproxy/zaproxy:stable \\
-//                                    /bin/bash -c &quot;zap-baseline.py -t ${env.TARGET_URL_API} -r ${env.ZAP_REPORT_NAME_API} -w zap_warn_rules.xml -l WARN -d &amp;&amp; echo &apos;--- ZAP Container ls -la /zap/wrk ---&apos; &amp;&amp; ls -la /zap/wrk&quot;
-//                            &quot;&quot;&quot;
                             echo &quot;START: Creaing OWASP Zap container&quot;
                             sh &quot;&quot;&quot;
-                                docker create --name ${zapContainerNameApi} --network host \\
+                                docker create --name ${zapContainerNameApi} --network intra-net \\
                                     -w /zap/wrk/ \\
                                     -u ${jenkinsUser}:${jenkinsGroup} \\
                                     ghcr.io/zaproxy/zaproxy:stable zap-api-scan.py \\
-                                    -t /zap/wrk/openapi.json -f openapi -O http://localhost:8182 \\
+                                    -t /zap/wrk/openapi.json -f openapi -O http://jenkins:8182 \\
                                     -r ${env.ZAP_REPORT_NAME_API} -d \\
                                     -z &quot;-config scanner.delayInMs=500 -config spider.threadCount=1&quot;
                             &quot;&quot;&quot;
+//                                  -z &quot;-config scanner.delayInMs=500 -config spider.threadCount=1&quot;
                             echo &quot;START: Copying OpenAPI file to OWASP Zap container&quot;
                             sh &quot;docker cp ${WORKSPACE}/webapi/build/docs/openapi/openapi.json ${zapContainerNameApi}:/zap/wrk/openapi.json&quot;
                             echo &quot;START: Starting OWASP Zap container&quot;
@@ -228,7 +224,7 @@
                         }
                         echo &quot;Copying &apos;${env.ZAP_REPORT_NAME_API}&apos; from container &apos;${zapContainerNameApi}&apos; to workspace...&quot;
                         sh &quot;docker cp ${zapContainerNameApi}:/zap/wrk/${env.ZAP_REPORT_NAME_API} .&quot;
-                        
+
                     } finally {
 
                         def containerId = sh(script: &quot;docker ps -a -q --filter &apos;name=${mysqlContainerName}&apos;&quot;, returnStdout: true).trim()
@@ -302,10 +298,6 @@
                                 reportName: &apos;DAST Scan Report (webapi)&apos;
                             )
                         }
-
-
-
-
                     }
                 }
             }
