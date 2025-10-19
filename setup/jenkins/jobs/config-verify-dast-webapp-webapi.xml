@@ -194,27 +194,25 @@
                     def jenkinsUser = sh(script: &apos;id -u&apos;, returnStdout: true).trim()
                     def jenkinsGroup = sh(script: &apos;id -g&apos;, returnStdout: true).trim()
                     try {
-                        try {
-                            sh &quot;&quot;&quot;
-                                docker run --name ${ZAP_CONTAINER_UI} --network ${CONTAINER_NETWORK} \\
-                                    -w /zap/wrk \\
-                                    -u ${jenkinsUser}:${jenkinsGroup} \\
-                                    ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \\
-										-t ${env.ZAP_TARGET_URL_UI} \\
-										-r ${env.ZAP_REPORT_NAME_UI} -l WARN -d \\
-										-z &quot;-config scanner.delayInMs=500 -config spider.threadCount=1&quot;
-                            &quot;&quot;&quot;
-                        } catch (e) {
-                            echo &quot;DAST scan to webui found warnings, but proceeding. Marking build as UNSTABLE.&quot;
-                            currentBuild.result = &apos;UNSTABLE&apos;
-                        }
-                        echo &quot;Copying &apos;${env.ZAP_REPORT_NAME_UI}&apos; from container &apos;${ZAP_CONTAINER_UI}&apos; to workspace...&quot;
-                        sh &quot;docker cp ${ZAP_CONTAINER_UI}:/zap/wrk/${env.ZAP_REPORT_NAME_UI} .&quot;
+                        sh &quot;&quot;&quot;
+                            docker run --name ${ZAP_CONTAINER_UI} --network ${CONTAINER_NETWORK} \\
+                                -w /zap/wrk \\
+                                -u ${jenkinsUser}:${jenkinsGroup} \\
+                                ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \\
+                                    -t ${env.ZAP_TARGET_URL_UI} \\
+                                    -r ${env.ZAP_REPORT_NAME_UI} -l WARN -d \\
+                                    -z &quot;-config scanner.delayInMs=500 -config spider.threadCount=1&quot;
+                        &quot;&quot;&quot;
+                    } catch (e) {
+                        echo &quot;DAST scan to webui found warnings, but proceeding. Marking build as UNSTABLE.&quot;
+                        currentBuild.result = &apos;UNSTABLE&apos;
                     } finally {
+                        echo &quot;Copying &apos;${env.ZAP_REPORT_NAME_UI}&apos; from container &apos;${ZAP_CONTAINER_UI}&apos; to workspace...&quot;
+                        sh &quot;docker cp ${ZAP_CONTAINER_UI}:/zap/wrk/${env.ZAP_REPORT_NAME_UI} . || true&quot;
                         containerId = sh(script: &quot;docker ps -a -q --filter &apos;name=${ZAP_CONTAINER_UI}&apos;&quot;, returnStdout: true).trim()
                         if (containerId) {
                             echo &quot;Found existing container &apos;${ZAP_CONTAINER_UI}&apos; (${containerId}). Cleaning it up...&quot;
-                            sh &quot;docker rm -f ${ZAP_CONTAINER_UI} || true&quot;
+                            sh &quot;docker rm -f ${ZAP_CONTAINER_UI}&quot;
                         }
                     }
                 }
@@ -248,29 +246,26 @@
                     def jenkinsUser = sh(script: &apos;id -u&apos;, returnStdout: true).trim()
                     def jenkinsGroup = sh(script: &apos;id -g&apos;, returnStdout: true).trim()
                     try {
-                        try {
-                            echo &quot;START: Creaing OWASP Zap container&quot;
-                            sh &quot;&quot;&quot;
-                                docker create --name ${ZAP_CONTAINER_API} --network ${CONTAINER_NETWORK} \\
-                                    -w /zap/wrk/ \\
-                                    -u ${jenkinsUser}:${jenkinsGroup} \\
-                                    ghcr.io/zaproxy/zaproxy:stable zap-api-scan.py \\
-										-t /zap/wrk/openapi.json -f openapi -O ${env.ZAP_TARGET_URL_API} \\
-										-r ${env.ZAP_REPORT_NAME_API} -l WARN -d \\
-                                        -z &quot;-config scanner.delayInMs=500 -config spider.threadCount=1 -config ascan.scanner.defaultPolicy.attackStrength=LOW -config ascan.scanner.defaultPolicy.alertThreshold=HIGH&quot;
-                            &quot;&quot;&quot;
-                            echo &quot;START: Copying OpenAPI file to OWASP Zap container&quot;
-                            sh &quot;docker cp ${WORKSPACE}/webapi/build/docs/openapi/openapi.json ${ZAP_CONTAINER_API}:/zap/wrk/openapi.json&quot;
-                            echo &quot;START: Starting OWASP Zap container&quot;
-                            sh &quot;docker start -a ${ZAP_CONTAINER_API}&quot;
-                        } catch (e) {
-                            echo &quot;DAST scan to webapi found warnings, but proceeding. Marking build as UNSTABLE.&quot;
-                            currentBuild.result = &apos;UNSTABLE&apos;
-                        }
-                        echo &quot;Copying &apos;${env.ZAP_REPORT_NAME_API}&apos; from container &apos;${ZAP_CONTAINER_API}&apos; to workspace...&quot;
-                        sh &quot;docker cp ${ZAP_CONTAINER_API}:/zap/wrk/${env.ZAP_REPORT_NAME_API} .&quot;
-
+                        echo &quot;START: Creaing OWASP Zap container&quot;
+                        sh &quot;&quot;&quot;
+                            docker create --name ${ZAP_CONTAINER_API} --network ${CONTAINER_NETWORK} \\
+                                -w /zap/wrk/ \\
+                                -u ${jenkinsUser}:${jenkinsGroup} \\
+                                ghcr.io/zaproxy/zaproxy:stable zap-api-scan.py \\
+                                    -t /zap/wrk/openapi.json -f openapi -O ${env.ZAP_TARGET_URL_API} \\
+                                    -r ${env.ZAP_REPORT_NAME_API} -l WARN -d \\
+                                    -z &quot;-config scanner.delayInMs=500 -config spider.threadCount=1 -config ascan.scanner.defaultPolicy.attackStrength=LOW -config ascan.scanner.defaultPolicy.alertThreshold=HIGH&quot;
+                        &quot;&quot;&quot;
+                        echo &quot;START: Copying OpenAPI file to OWASP Zap container&quot;
+                        sh &quot;docker cp ${WORKSPACE}/webapi/build/docs/openapi/openapi.json ${ZAP_CONTAINER_API}:/zap/wrk/openapi.json&quot;
+                        echo &quot;START: Starting OWASP Zap container&quot;
+                        sh &quot;docker start -a ${ZAP_CONTAINER_API}&quot;
+                    } catch (e) {
+                        echo &quot;DAST scan to webapi found warnings, but proceeding. Marking build as UNSTABLE.&quot;
+                        currentBuild.result = &apos;UNSTABLE&apos;
                     } finally {
+                        echo &quot;Copying &apos;${env.ZAP_REPORT_NAME_API}&apos; from container &apos;${ZAP_CONTAINER_API}&apos; to workspace...&quot;
+                        sh &quot;docker cp ${ZAP_CONTAINER_API}:/zap/wrk/${env.ZAP_REPORT_NAME_API} . || true&quot;
                         containerId = sh(script: &quot;docker ps -a -q --filter &apos;name=${ZAP_CONTAINER_API}&apos;&quot;, returnStdout: true).trim()
                         if (containerId) {
                             echo &quot;Found existing container &apos;${ZAP_CONTAINER_API}&apos; (${containerId}). Cleaning it up...&quot;
