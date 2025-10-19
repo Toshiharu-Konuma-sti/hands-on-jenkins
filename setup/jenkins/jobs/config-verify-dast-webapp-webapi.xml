@@ -33,15 +33,23 @@
         MYSQL_CONTAINER = &quot;zap-mysql&quot;
 		ZAP_CONTAINER_UI = &quot;zap-scan-ui-${BUILD_NUMBER}&quot;
 		ZAP_CONTAINER_API = &quot;zap-scan-api-${BUILD_NUMBER}&quot;
+        CONTAINER_NETWORK = &quot;intra-net&quot;
 
-        JAR_FILE_PATTERN_API = &apos;webapi/build/libs/apisl.handson.rollingdice.webapp.webapi-*-SNAPSHOT.jar&apos;
+        GIT_REPO_HANDSON_PREFIX = &quot;http://gitlab:13000/root/webapp-&quot;
+        GIT_REPO_WEBAPP_ORIGIN = &quot;https://github.com/Toshiharu-Konuma-sti/hands-on-rollingdice-webapp.git&quot;
+
+        JAR_FILE_PATTERN_API = &quot;webapi/build/libs/apisl.handson.rollingdice.webapp.webapi-*-SNAPSHOT.jar&quot;
+        WEBAPP_PID_API = &quot;webapp-webapi.pid&quot;
+        WEBAPP_LOG_API = &quot;webapp-webapi.log&quot;
         HEALTH_CHECK_URL_API = &quot;http://localhost:8182/actuator/health&quot;
-        TARGET_URL_API = &quot;http://jenkins:8182&quot;
+        ZAP_TARGET_URL_API = &quot;http://jenkins:8182&quot;
         ZAP_REPORT_NAME_API = &quot;zap-api-scan-report-api.html&quot;
 
-        JAR_FILE_PATTERN_UI = &apos;webui/build/libs/apisl.handson.rollingdice.webapp.webui-*-SNAPSHOT.jar&apos;
+        JAR_FILE_PATTERN_UI = &quot;webui/build/libs/apisl.handson.rollingdice.webapp.webui-*-SNAPSHOT.jar&quot;
+        WEBAPP_PID_UI = &quot;webapp-webui.pid&quot;
+        WEBAPP_LOG_UI = &quot;webapp-webui.log&quot;
         HEALTH_CHECK_URL_UI = &quot;http://localhost:8181/actuator/health&quot;
-        TARGET_URL_UI = &quot;http://jenkins:8181&quot;
+        ZAP_TARGET_URL_UI = &quot;http://jenkins:8181&quot;
         ZAP_REPORT_NAME_UI = &quot;zap-baseline-report-ui.html&quot;
         
         TIMEOUT_EXP = 2
@@ -59,7 +67,7 @@
                     def services = env.SERVICES_LIST.split(&apos;,&apos;)
                     services.each { serviceName -&gt;
                         echo &quot;--- Processing service: ${serviceName} ---&quot;
-                        def serviceGitUrl = &quot;http://gitlab:13000/root/webapp-${serviceName}.git&quot;
+                        def serviceGitUrl = &quot;${env.GIT_REPO_HANDSON_PREFIX}${serviceName}.git&quot;
                         dir(serviceName) {
                             echo &quot;### [${serviceName}] START: Cloning repository from ${serviceGitUrl}&quot;
                             git url: serviceGitUrl, branch: &apos;main&apos;
@@ -74,7 +82,6 @@
                     def services = env.SERVICES_LIST.split(&apos;,&apos;)
                     services.each { serviceName -&gt;
                         echo &quot;--- Processing service: ${serviceName} ---&quot;
-                        def serviceGitUrl = &quot;http://gitlab:13000/root/webapp-${serviceName}.git&quot;
                         dir(serviceName) {
                             echo &quot;### [${serviceName}] START: Building with Gradle&quot;
                             sh &quot;./gradlew assemble -x cyclonedxBom --info&quot;
@@ -100,13 +107,13 @@
                 script {
                     dir(&apos;webapp-repo&apos;) {
                         echo &quot;### START: Checkout MySQL configuration&quot;
-                        git url: &apos;https://github.com/Toshiharu-Konuma-sti/hands-on-rollingdice-webapp.git&apos;, branch: &apos;main&apos;
+                        git url: GIT_REPO_WEBAPP_ORIGIN, branch: &apos;main&apos;
 
                         echo &quot;### START: Creating MySQL container&quot;
                         sh &quot;&quot;&quot;
                             docker create --name ${MYSQL_CONTAINER} \\
                                 -h zap-mysql \\
-                                --network intra-net \\
+                                --network ${CONTAINER_NETWORK} \\
                                 -e MYSQL_ROOT_PASSWORD=password \\
                                 -e MYSQL_DATABASE=hands_on_db \\
                                 -e MYSQL_USER=myuser \\
@@ -134,7 +141,7 @@
         stage(&quot;Start up webapi process&quot;) {
             steps {
                 script {
-                    echo &quot;### START: Starting WebApp API container&quot;
+                    echo &quot;### START: Starting WebApp API&quot;
                     def jarFile_api = sh(script: &quot;ls ${env.JAR_FILE_PATTERN_API}&quot;, returnStdout: true).trim()
                     if (jarFile_api.isEmpty()) {
                         error &quot;JAR file not found with pattern: ${env.JAR_FILE_PATTERN_API}&quot;
@@ -145,7 +152,7 @@
                         nohup java -jar ${jarFile_api} \
                             --management.otlp.metrics.export.enabled=false \
                             --otel.sdk.disabled=true \
-                            &gt; webapp-webapi.log 2&gt;&amp;1 &amp; echo \$! &gt; webapp-webapi.pid
+                            &gt; ${env.WEBAPP_LOG_API} 2&gt;&amp;1 &amp; echo \$! &gt; ${env.WEBAPP_PID_API}
                     &quot;&quot;&quot;
                     echo &quot;Waiting for application api to start...&quot;
                     timeout(time: TIMEOUT_EXP, unit: &apos;MINUTES&apos;) {
@@ -158,7 +165,7 @@
         stage(&quot;Start up webui process&quot;) {
             steps {
                 script {
-                    echo &quot;### START: Starting WebApp UI container&quot;
+                    echo &quot;### START: Starting WebApp UI&quot;
                     def jarFile_ui = sh(script: &quot;ls ${env.JAR_FILE_PATTERN_UI}&quot;, returnStdout: true).trim()
                     if (jarFile_ui.isEmpty()) {
                         error &quot;JAR file not found with pattern: ${env.JAR_FILE_PATTERN_UI}&quot;
@@ -169,7 +176,7 @@
                         nohup java -jar ${jarFile_ui} \
                             --management.otlp.metrics.export.enabled=false \
                             --otel.sdk.disabled=true \
-                            &gt; webapp-webui.log 2&gt;&amp;1 &amp; echo \$! &gt; webapp-webui.pid
+                            &gt; ${env.WEBAPP_LOG_UI} 2&gt;&amp;1 &amp; echo \$! &gt; ${env.WEBAPP_PID_UI}
                     &quot;&quot;&quot;
                     echo &quot;Waiting for application ui to start...&quot;
                     timeout(time: TIMEOUT_EXP, unit: &apos;MINUTES&apos;) {
@@ -189,11 +196,11 @@
                     try {
                         try {
                             sh &quot;&quot;&quot;
-                                docker run --name ${ZAP_CONTAINER_UI} --network intra-net \\
+                                docker run --name ${ZAP_CONTAINER_UI} --network ${CONTAINER_NETWORK} \\
                                     -w /zap/wrk \\
                                     -u ${jenkinsUser}:${jenkinsGroup} \\
                                     ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \\
-										-t ${env.TARGET_URL_UI} \\
+										-t ${env.ZAP_TARGET_URL_UI} \\
 										-r ${env.ZAP_REPORT_NAME_UI} -l WARN -d \\
 										-z &quot;-config scanner.delayInMs=500 -config spider.threadCount=1&quot;
                             &quot;&quot;&quot;
@@ -218,7 +225,7 @@
                         echo &quot;### STARt: archiving and publishing for webui&quot;
                         if (fileExists(ZAP_REPORT_NAME_UI)) {
                             echo &quot;Archiving artifacts...&quot;
-                            archiveArtifacts artifacts: &quot;${env.ZAP_REPORT_NAME_UI}, webapp-webui.log&quot;, allowEmptyArchive: false
+                            archiveArtifacts artifacts: &quot;${env.ZAP_REPORT_NAME_UI}, ${env.WEBAPP_LOG_UI}&quot;, allowEmptyArchive: false
                             echo &quot;Publishing DAST report...&quot;
                             publishHTML(
                                 allowMissing: false,
@@ -244,11 +251,11 @@
                         try {
                             echo &quot;START: Creaing OWASP Zap container&quot;
                             sh &quot;&quot;&quot;
-                                docker create --name ${ZAP_CONTAINER_API} --network intra-net \\
+                                docker create --name ${ZAP_CONTAINER_API} --network ${CONTAINER_NETWORK} \\
                                     -w /zap/wrk/ \\
                                     -u ${jenkinsUser}:${jenkinsGroup} \\
                                     ghcr.io/zaproxy/zaproxy:stable zap-api-scan.py \\
-										-t /zap/wrk/openapi.json -f openapi -O ${env.TARGET_URL_API} \\
+										-t /zap/wrk/openapi.json -f openapi -O ${env.ZAP_TARGET_URL_API} \\
 										-r ${env.ZAP_REPORT_NAME_API} -l WARN -d \\
                                         -z &quot;-config scanner.delayInMs=500 -config spider.threadCount=1 -config ascan.scanner.defaultPolicy.attackStrength=LOW -config ascan.scanner.defaultPolicy.alertThreshold=HIGH&quot;
                             &quot;&quot;&quot;
@@ -278,7 +285,7 @@
                         echo &quot;### STARt: archiving and publishing for webapi&quot;
                         if (fileExists(ZAP_REPORT_NAME_API)) {
                             echo &quot;Archiving artifacts...&quot;
-                            archiveArtifacts artifacts: &quot;${env.ZAP_REPORT_NAME_API}, webapp-webapi.log&quot;, allowEmptyArchive: false
+                            archiveArtifacts artifacts: &quot;${env.ZAP_REPORT_NAME_API}, ${env.WEBAPP_LOG_API}&quot;, allowEmptyArchive: false
                             echo &quot;Publishing DAST report...&quot;
                             publishHTML(
                                 allowMissing: false,
@@ -307,13 +314,13 @@
                 }
 
                 echo &quot;Stopping application...&quot;
-                if (fileExists(&apos;webapp-webapi.pid&apos;)) {
-                    sh &apos;kill `cat webapp-webapi.pid` || true&apos;
+                if (fileExists(env.WEBAPP_PID_API)) {
+                    sh &quot;kill `cat ${env.WEBAPP_PID_API}` || true&quot;
                 }
 
                 echo &quot;Stopping application...&quot;
-                if (fileExists(&apos;webapp-webui.pid&apos;)) {
-                    sh &apos;kill `cat webapp-webui.pid` || true&apos;
+                if (fileExists(env.WEBAPP_PID_UI)) {
+                    sh &quot;kill `cat ${env.WEBAPP_PID_UI}` || true&quot;
                 }
 
             }
