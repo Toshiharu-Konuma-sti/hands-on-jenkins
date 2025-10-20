@@ -339,7 +339,8 @@ prepare_jfrog_oss_files()
 	cp -f $DWN_DIR/$DIR_PTN/templates/docker-compose-volumes.yaml $CUR_DIR
 	cp -f $DWN_DIR/$DIR_PTN/.env $CUR_DIR
 
-	echo "# dummy" >> $CUR_DIR/.env
+	echo "" >> $CUR_DIR/.env
+	echo "# added the environment variables below" >> $CUR_DIR/.env
 	echo "JF_SHARED_NODE_IP=$(hostname -i)" >> $CUR_DIR/.env
 	echo "JF_SHARED_NODE_ID=$(hostname -s)" >> $CUR_DIR/.env
 	echo "JF_SHARED_NODE_NAME=$(hostname -s)" >> $CUR_DIR/.env
@@ -391,9 +392,7 @@ prepare_webapp_mysql_files()
 	GIT_BRANCH=$(basename $PKG_URL | sed 's/\.[^.]*$//')
 
 	cp -rf $DWN_DIR/$GIT_REPO-$GIT_BRANCH/mysql/ $CUR_DIR
-
-	echo "" >> $CUR_DIR/.env
-	grep "MYSQL_" $DWN_DIR/$GIT_REPO-$GIT_BRANCH/.env >> $CUR_DIR/.env
+	cp -f  $DWN_DIR/$GIT_REPO-$GIT_BRANCH/.env-webapp-mysql $CUR_DIR
 }
 # }}}
 

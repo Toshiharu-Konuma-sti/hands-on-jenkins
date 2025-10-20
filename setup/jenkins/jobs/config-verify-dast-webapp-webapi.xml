@@ -114,8 +114,7 @@
                             docker create --name ${MYSQL_CONTAINER} \\
                                 -h zap-mysql \\
                                 --network ${CONTAINER_NETWORK} \\
-								--env-file .env \\
-                                -e TZ=&quot;Asia/Tokyo&quot; \\
+								--env-file .env-webapp-mysql \\
                                 mysql:8.0
                         &quot;&quot;&quot;
 
