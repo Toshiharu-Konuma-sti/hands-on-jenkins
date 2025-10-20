@@ -4,7 +4,7 @@ x-image-cicd-target: &cicdTargetImage
   build:
     context: ./cicd
     dockerfile: Dockerfile-target
-  image: hands-on/ubuntu/cicd/target:latest
+  image: hands-on/jenkins/ubuntu/cicd/target:latest
 
 services:
 
@@ -18,6 +18,7 @@ services:
       - internal
       - external
     tty: true
+    restart: always
 
   webapp-webapi:
     container_name: webapp-webapi
@@ -29,6 +30,7 @@ services:
       - internal
       - external
     tty: true
+    restart: always
 
   webapp-mysql:
     hostname: webapp-mysql
@@ -43,12 +45,9 @@ services:
       - ./mysql/config/my.cnf:/etc/mysql/conf.d/my.cnf
       - ./mysql/init:/docker-entrypoint-initdb.d
     command: mysqld
-    environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS}
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASS}
-      TZ: "Asia/Tokyo"
+    env_file:
+      - .env-webapp-mysql
+    restart: always
 
 networks:
   internal:

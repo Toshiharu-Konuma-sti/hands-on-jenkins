@@ -130,6 +130,8 @@ create_container()
 	echo "\n### START: Create new containers ##########"
 	docker volume create --name=artifactory_data
 	docker volume create --name=postgres_data
+	docker volume create --name=dtrack-data
+	docker volume create --name=postgres-data
 	docker-compose \
 		-f $CUR_DIR/docker-compose.yml \
 		-f $CUR_DIR/docker-compose-webapp.yml \
@@ -166,6 +168,8 @@ destory_container()
 		down -v --remove-orphans
 	docker volume rm artifactory_data
 	docker volume rm postgres_data
+	docker volume rm dtrack-data
+	docker volume rm postgres-data
 }
 # }}}
 
@@ -335,7 +339,8 @@ prepare_jfrog_oss_files()
 	cp -f $DWN_DIR/$DIR_PTN/templates/docker-compose-volumes.yaml $CUR_DIR
 	cp -f $DWN_DIR/$DIR_PTN/.env $CUR_DIR
 
-	echo "# dummy" >> $CUR_DIR/.env
+	echo "" >> $CUR_DIR/.env
+	echo "# added the environment variables below" >> $CUR_DIR/.env
 	echo "JF_SHARED_NODE_IP=$(hostname -i)" >> $CUR_DIR/.env
 	echo "JF_SHARED_NODE_ID=$(hostname -s)" >> $CUR_DIR/.env
 	echo "JF_SHARED_NODE_NAME=$(hostname -s)" >> $CUR_DIR/.env
@@ -387,12 +392,7 @@ prepare_webapp_mysql_files()
 	GIT_BRANCH=$(basename $PKG_URL | sed 's/\.[^.]*$//')
 
 	cp -rf $DWN_DIR/$GIT_REPO-$GIT_BRANCH/mysql/ $CUR_DIR
-
-	echo "" >> $CUR_DIR/.env
-	echo "DB_ROOT_PASS=password" >> $CUR_DIR/.env
-	echo "DB_NAME=mytest" >> $CUR_DIR/.env
-	echo "DB_USER=myuser" >> $CUR_DIR/.env
-	echo "DB_PASS=mypass" >> $CUR_DIR/.env
+	cp -f  $DWN_DIR/$GIT_REPO-$GIT_BRANCH/.env-webapp-mysql $CUR_DIR
 }
 # }}}
 
@@ -480,14 +480,14 @@ show_url()
 
 /************************************************************
  * Information:
- * - Access to Web ui tools with the URL below.
+ * - Navigate to Web ui tools with the URL below.
  *   - Jenkins:             http://localhost:8080
  *   - Dependency-Track:    http://localhost:8980
  *   - Artifactory:         http://localhost:8082
  *   - GitLab:              http://localhost:13000
- * - Access to the deployed webapp with the URL below.
+ * - Navigate to the deployed webapp with the URL below.
  *   - webapp:              http://localhost:8181
- * - Access to the external web service with the URL below.
+ * - Navigate to the external web service with the URL below.
  *   - Sonatype OSS Index   https://ossindex.sonatype.org
  ***********************************************************/
 EOS
@@ -525,14 +525,20 @@ EOS
 show_information()
 {
 	echo "- Setup Instructions:"
-	echo "  1. Access Jenkins and apply JCasC: \e[4m/var/jenkins_home/my-config/jcasc/jenkins.yaml\e[m"
-	echo "  2. Access Sonatype OSS Index and get it's API Token."
-	echo "  3. Access Dependency-Track and update Sonatype OSS Index registered email and API Token."
+	echo "  1. Go to Jenkins and apply JCasC: \e[4m/var/jenkins_home/my-config/jcasc/jenkins.yaml\e[m"
+	echo "  2. Go to Sonatype OSS Index and get it's API Token."
+	echo "  3. Go to Dependency-Track and update Sonatype OSS Index registered email and API Token."
 	echo "  4. Issue an API-Key in Dependency-Track."
-	echo "  5. Access Jenkins and update it with the API key issued by Dependency-Track."
-	echo "  6. Access Artifactory and create repositories: \e[4mhands-on-rollingdice-webapp-webapi\e[m and \e[4mhands-on-rollingdice-webapp-webui\e[m"
-	echo "  7. Run the setup script: \e[4msetup/SETUP_HANDS-ON.sh\e[m"
-	echo "  8. Run the coding preparation script: \e[4mtry-my-hand/PREPARE_CODING.sh\e[m"
+	echo "  5. Go to Jenkins and update it with the API key issued by Dependency-Track."
+	echo "  6. Go to Artifactory and a create local repositories: \e[4mhands-on-rollingdice-webapp-webapi\e[m and \e[4mhands-on-rollingdice-webapp-webui\e[m"
+	echo "  7. Create a remote repository and a virtual repository that links local and remote: \e[4mmaven-central-remote\e[m and \e[4mgradle-virtual\e[m"
+	echo "  8. Run the setup script in the console: \e[4msetup/SETUP_HANDS-ON.sh\e[m"
+	echo "- CI/CD Instructions:"
+	echo "  1. Run the script in the console. It will clone GitLab repository and add the webapp codes: \e[4mtry-my-hand/PREPARE_CODING.sh\e[m"
+	echo "  2. Push a local repository including webapp codes to GitLab."
+	echo "  3. Go to GitLab and merge the branch in the repository."
+	echo "  4. Go to Jenkins and check that the job has started."
+	echo "  5. Run the deployment job in Jenkins."
 	echo ""
 }
 # // }}}

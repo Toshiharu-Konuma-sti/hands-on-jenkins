@@ -6,7 +6,6 @@ services:
     container_name: gitlab
     hostname: gitlab
     image: gitlab/gitlab-ce:18.2.4-ce.0
-    restart: always
     environment:
       GITLAB_OMNIBUS_CONFIG: |
         external_url 'http://localhost:13000'
@@ -20,6 +19,7 @@ services:
     networks:
       - internal
       - external
+    restart: always
 
   jenkins:
     hostname: jenkins
@@ -27,14 +27,18 @@ services:
     build:
       context: ./jenkins
     image: hands-on/jenkins:latest
+    environment:
+      - JAVA_OPTS='-Dhudson.model.DirectoryBrowserSupport.CSP="style-src ''self'' ''unsafe-inline'';"'
     volumes:
       - ./jenkins/my-config:/var/jenkins_home/my-config:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - 8080:8080
       - 50000:50000
     networks:
       - internal
       - external
+    restart: always
 
   ansible:
     container_name: ansible
@@ -42,7 +46,7 @@ services:
     build:
       context: ./cicd
       dockerfile: Dockerfile-ansible
-    image: hands-on/ubuntu/cicd/ansible:latest
+    image: hands-on/jenkins/ubuntu/cicd/ansible:latest
     volumes:
       - ./cicd/ansible/config/ansible.cfg:/etc/ansible/ansible.cfg:ro
       - ./cicd/ansible/playbook:/root/ansible/playbook:ro
@@ -50,6 +54,7 @@ services:
       - internal
       - external
     tty: true
+    restart: always
 
 volumes:
   gitlab-config:

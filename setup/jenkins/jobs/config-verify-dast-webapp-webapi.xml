@@ -1,0 +1,331 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job">
+  <actions>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition"/>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition">
+      <jobProperties/>
+      <triggers/>
+      <parameters/>
+      <options/>
+    </org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction>
+  </actions>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <com.dabsquared.gitlabjenkins.connection.GitLabConnectionProperty plugin="gitlab-plugin">
+      <gitLabConnection></gitLabConnection>
+      <jobCredentialId></jobCredentialId>
+      <useAlternativeCredential>false</useAlternativeCredential>
+    </com.dabsquared.gitlabjenkins.connection.GitLabConnectionProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">
+    <script>pipeline{
+    agent{
+        label &apos;master&apos;
+    }
+    tools {
+        jfrog &apos;my-jfrog-cli&apos;
+        gradle &apos;my-gradle&apos;
+    }
+    environment {
+        SERVICES_LIST = &apos;webapi,webui&apos;
+
+        MYSQL_CONTAINER = &quot;zap-mysql&quot;
+		ZAP_CONTAINER_UI = &quot;zap-scan-ui-${BUILD_NUMBER}&quot;
+		ZAP_CONTAINER_API = &quot;zap-scan-api-${BUILD_NUMBER}&quot;
+        CONTAINER_NETWORK = &quot;intra-net&quot;
+
+        GIT_REPO_HANDSON_PREFIX = &quot;http://gitlab:13000/root/webapp-&quot;
+        GIT_REPO_WEBAPP_ORIGIN = &quot;https://github.com/Toshiharu-Konuma-sti/hands-on-rollingdice-webapp.git&quot;
+
+        JAR_FILE_PATTERN_API = &quot;webapi/build/libs/apisl.handson.rollingdice.webapp.webapi-*-SNAPSHOT.jar&quot;
+        WEBAPP_PID_API = &quot;webapp-webapi.pid&quot;
+        WEBAPP_LOG_API = &quot;webapp-webapi.log&quot;
+        HEALTH_CHECK_URL_API = &quot;http://localhost:8182/actuator/health&quot;
+        ZAP_TARGET_URL_API = &quot;http://jenkins:8182&quot;
+        ZAP_REPORT_NAME_API = &quot;zap-api-scan-report-api.html&quot;
+
+        JAR_FILE_PATTERN_UI = &quot;webui/build/libs/apisl.handson.rollingdice.webapp.webui-*-SNAPSHOT.jar&quot;
+        WEBAPP_PID_UI = &quot;webapp-webui.pid&quot;
+        WEBAPP_LOG_UI = &quot;webapp-webui.log&quot;
+        HEALTH_CHECK_URL_UI = &quot;http://localhost:8181/actuator/health&quot;
+        ZAP_TARGET_URL_UI = &quot;http://jenkins:8181&quot;
+        ZAP_REPORT_NAME_UI = &quot;zap-baseline-report-ui.html&quot;
+        
+        TIMEOUT_EXP = 2
+    }
+    stages{
+        stage(&quot;Clean up a local environment&quot;){
+            steps{
+                echo &quot;### START: clean up the cloned directoy&quot;
+                deleteDir()
+            }
+        }
+        stage(&quot;Checkout a repository from GitLab&quot;){
+            steps{
+                script {
+                    def services = env.SERVICES_LIST.split(&apos;,&apos;)
+                    services.each { serviceName -&gt;
+                        echo &quot;--- Processing service: ${serviceName} ---&quot;
+                        def serviceGitUrl = &quot;${env.GIT_REPO_HANDSON_PREFIX}${serviceName}.git&quot;
+                        dir(serviceName) {
+                            echo &quot;### [${serviceName}] START: Cloning repository from ${serviceGitUrl}&quot;
+                            git url: serviceGitUrl, branch: &apos;main&apos;
+                        }
+                    }
+                }
+            }
+        }
+        stage(&quot;Build a repository&quot;){
+            steps{
+                script {
+                    def services = env.SERVICES_LIST.split(&apos;,&apos;)
+                    services.each { serviceName -&gt;
+                        echo &quot;--- Processing service: ${serviceName} ---&quot;
+                        dir(serviceName) {
+                            echo &quot;### [${serviceName}] START: Building with Gradle&quot;
+                            sh &quot;./gradlew assemble -x cyclonedxBom --info&quot;
+                        }
+                    }
+                }
+            }
+        }
+        stage(&quot;Generate an OpenAPI&quot;){
+            steps{
+                script {
+                    echo &quot;### START: generate an openapi&quot;
+                    def serviceName = &apos;webapi&apos;
+                    dir(serviceName) {
+                        echo &quot;### [${serviceName}] START: Generate a json format OpenAPI&quot;
+                        sh &quot;./gradlew generateOpenApiDocs --no-configuration-cache --info&quot;
+                    }
+                }
+            }
+        }
+        stage(&quot;Start up MySQL container&quot;) {
+            steps {
+                script {
+                    dir(&apos;webapp-repo&apos;) {
+                        echo &quot;### START: Checkout MySQL configuration&quot;
+                        git url: GIT_REPO_WEBAPP_ORIGIN, branch: &apos;main&apos;
+
+                        echo &quot;### START: Creating MySQL container&quot;
+                        sh &quot;&quot;&quot;
+                            docker create --name ${MYSQL_CONTAINER} \\
+                                -h zap-mysql \\
+                                --network ${CONTAINER_NETWORK} \\
+								--env-file .env-webapp-mysql \\
+                                mysql:8.0
+                        &quot;&quot;&quot;
+
+                        echo &quot;### START: Copying configuration files to MySQL container&quot;
+                        sh &quot;docker cp ./mysql/config/my.cnf ${MYSQL_CONTAINER}:/etc/mysql/conf.d/my.cnf&quot;
+                        sh &quot;docker cp ./mysql/init/init.sql ${MYSQL_CONTAINER}:/docker-entrypoint-initdb.d/init.sql&quot;
+                    }
+
+                    echo &quot;### START: Starting MySQL container&quot;
+                    sh &quot;docker start ${MYSQL_CONTAINER}&quot;
+
+                    echo &quot;Waiting for MySQL server to start...&quot;
+                    timeout(time: TIMEOUT_EXP, unit: &apos;MINUTES&apos;) {
+                        sh &quot;until docker exec ${MYSQL_CONTAINER} mysqladmin ping -h 127.0.0.1 --silent; do echo &apos;Waiting for mysql...&apos;; sleep 5; done&quot;
+                    }
+                    echo &quot;MySQL is up and running.&quot;
+                }
+            }
+        }
+        stage(&quot;Start up webapi process&quot;) {
+            steps {
+                script {
+                    echo &quot;### START: Starting WebApp API&quot;
+                    def jarFile_api = sh(script: &quot;ls ${env.JAR_FILE_PATTERN_API}&quot;, returnStdout: true).trim()
+                    if (jarFile_api.isEmpty()) {
+                        error &quot;JAR file not found with pattern: ${env.JAR_FILE_PATTERN_API}&quot;
+                    }
+                    echo &quot;Found JAR file: ${jarFile_api}&quot;
+                    sh &quot;&quot;&quot;
+                        export SPRING_PROFILES_ACTIVE=zap
+                        nohup java -jar ${jarFile_api} \
+                            --management.otlp.metrics.export.enabled=false \
+                            --otel.sdk.disabled=true \
+                            &gt; ${env.WEBAPP_LOG_API} 2&gt;&amp;1 &amp; echo \$! &gt; ${env.WEBAPP_PID_API}
+                    &quot;&quot;&quot;
+                    echo &quot;Waiting for application api to start...&quot;
+                    timeout(time: TIMEOUT_EXP, unit: &apos;MINUTES&apos;) {
+                        sh &quot;until curl -s -o /dev/null -w &apos;%{http_code}&apos; ${env.HEALTH_CHECK_URL_API} | grep -q &apos;^[245]&apos;; do echo &apos;Waiting for app...&apos;; sleep 5; done&quot;
+                    }
+                    echo &quot;Application API is up and running.&quot;
+                }
+            }
+        }
+        stage(&quot;Start up webui process&quot;) {
+            steps {
+                script {
+                    echo &quot;### START: Starting WebApp UI&quot;
+                    def jarFile_ui = sh(script: &quot;ls ${env.JAR_FILE_PATTERN_UI}&quot;, returnStdout: true).trim()
+                    if (jarFile_ui.isEmpty()) {
+                        error &quot;JAR file not found with pattern: ${env.JAR_FILE_PATTERN_UI}&quot;
+                    }
+                    echo &quot;Found JAR file: ${jarFile_ui}&quot;
+                    sh &quot;&quot;&quot;
+                        export SPRING_PROFILES_ACTIVE=zap
+                        nohup java -jar ${jarFile_ui} \
+                            --management.otlp.metrics.export.enabled=false \
+                            --otel.sdk.disabled=true \
+                            &gt; ${env.WEBAPP_LOG_UI} 2&gt;&amp;1 &amp; echo \$! &gt; ${env.WEBAPP_PID_UI}
+                    &quot;&quot;&quot;
+                    echo &quot;Waiting for application ui to start...&quot;
+                    timeout(time: TIMEOUT_EXP, unit: &apos;MINUTES&apos;) {
+                        sh &quot;until curl -s -o /dev/null -w &apos;%{http_code}&apos; ${env.HEALTH_CHECK_URL_UI} | grep -q &apos;^[245]&apos;; do echo &apos;Waiting for app...&apos;; sleep 5; done&quot;
+                    }
+                    echo &quot;Application UI is up and running.&quot;
+                }
+            }
+        }
+        stage(&apos;Run DAST on webui with OWASP ZAP&apos;) {
+            steps {
+                script {
+                    echo &quot;### START: DAST scan with OWASP ZAP Docker container&quot;
+                    sh &apos;id&apos;
+                    def jenkinsUser = sh(script: &apos;id -u&apos;, returnStdout: true).trim()
+                    def jenkinsGroup = sh(script: &apos;id -g&apos;, returnStdout: true).trim()
+                    try {
+                        sh &quot;&quot;&quot;
+                            docker run --name ${ZAP_CONTAINER_UI} --network ${CONTAINER_NETWORK} \\
+                                -w /zap/wrk \\
+                                -u ${jenkinsUser}:${jenkinsGroup} \\
+                                ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \\
+                                    -t ${env.ZAP_TARGET_URL_UI} \\
+                                    -r ${env.ZAP_REPORT_NAME_UI} -l WARN -d \\
+                                    -z &quot;-config scanner.delayInMs=500 -config spider.threadCount=1&quot;
+                        &quot;&quot;&quot;
+                    } catch (e) {
+                        echo &quot;DAST scan to webui found warnings, but proceeding. Marking build as UNSTABLE.&quot;
+                        currentBuild.result = &apos;UNSTABLE&apos;
+                    } finally {
+                        echo &quot;Copying &apos;${env.ZAP_REPORT_NAME_UI}&apos; from container &apos;${ZAP_CONTAINER_UI}&apos; to workspace...&quot;
+                        sh &quot;docker cp ${ZAP_CONTAINER_UI}:/zap/wrk/${env.ZAP_REPORT_NAME_UI} . || true&quot;
+                        containerId = sh(script: &quot;docker ps -a -q --filter &apos;name=${ZAP_CONTAINER_UI}&apos;&quot;, returnStdout: true).trim()
+                        if (containerId) {
+                            echo &quot;Found existing container &apos;${ZAP_CONTAINER_UI}&apos; (${containerId}). Cleaning it up...&quot;
+                            sh &quot;docker rm -f ${ZAP_CONTAINER_UI}&quot;
+                        }
+                    }
+                }
+            }
+            post {
+                always {
+                    script {
+                        echo &quot;### STARt: archiving and publishing for webui&quot;
+                        if (fileExists(ZAP_REPORT_NAME_UI)) {
+                            echo &quot;Archiving artifacts...&quot;
+                            archiveArtifacts artifacts: &quot;${env.ZAP_REPORT_NAME_UI}, ${env.WEBAPP_LOG_UI}&quot;, allowEmptyArchive: false
+                            echo &quot;Publishing DAST report...&quot;
+                            publishHTML(
+                                allowMissing: false,
+                                alwaysLinkToLastBuild: true,
+                                keepAll: true,
+                                reportDir: &apos;.&apos;,
+                                reportFiles: &quot;${env.ZAP_REPORT_NAME_UI}&quot;,
+                                reportName: &apos;DAST Scan Report (webui)&apos;
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        stage(&apos;Run DAST on webapi with OWASP ZAP&apos;) {
+            steps {
+                script {
+                    echo &quot;### START: DAST scan with OWASP ZAP Docker container&quot;
+                    sh &apos;id&apos;
+                    def jenkinsUser = sh(script: &apos;id -u&apos;, returnStdout: true).trim()
+                    def jenkinsGroup = sh(script: &apos;id -g&apos;, returnStdout: true).trim()
+                    try {
+                        echo &quot;START: Creaing OWASP Zap container&quot;
+                        sh &quot;&quot;&quot;
+                            docker create --name ${ZAP_CONTAINER_API} --network ${CONTAINER_NETWORK} \\
+                                -w /zap/wrk/ \\
+                                -u ${jenkinsUser}:${jenkinsGroup} \\
+                                ghcr.io/zaproxy/zaproxy:stable zap-api-scan.py \\
+                                    -t /zap/wrk/openapi.json -f openapi -O ${env.ZAP_TARGET_URL_API} \\
+                                    -r ${env.ZAP_REPORT_NAME_API} -l WARN -d \\
+                                    -z &quot;-config scanner.delayInMs=500 -config spider.threadCount=1 -config ascan.scanner.defaultPolicy.attackStrength=LOW -config ascan.scanner.defaultPolicy.alertThreshold=HIGH&quot;
+                        &quot;&quot;&quot;
+                        echo &quot;START: Copying OpenAPI file to OWASP Zap container&quot;
+                        sh &quot;docker cp ${WORKSPACE}/webapi/build/docs/openapi/openapi.json ${ZAP_CONTAINER_API}:/zap/wrk/openapi.json&quot;
+                        echo &quot;START: Starting OWASP Zap container&quot;
+                        sh &quot;docker start -a ${ZAP_CONTAINER_API}&quot;
+                    } catch (e) {
+                        echo &quot;DAST scan to webapi found warnings, but proceeding. Marking build as UNSTABLE.&quot;
+                        currentBuild.result = &apos;UNSTABLE&apos;
+                    } finally {
+                        echo &quot;Copying &apos;${env.ZAP_REPORT_NAME_API}&apos; from container &apos;${ZAP_CONTAINER_API}&apos; to workspace...&quot;
+                        sh &quot;docker cp ${ZAP_CONTAINER_API}:/zap/wrk/${env.ZAP_REPORT_NAME_API} . || true&quot;
+                        containerId = sh(script: &quot;docker ps -a -q --filter &apos;name=${ZAP_CONTAINER_API}&apos;&quot;, returnStdout: true).trim()
+                        if (containerId) {
+                            echo &quot;Found existing container &apos;${ZAP_CONTAINER_API}&apos; (${containerId}). Cleaning it up...&quot;
+                            sh &quot;docker rm -f ${ZAP_CONTAINER_API}&quot;
+                        }
+                    }
+                }
+            }
+            post {
+                always {
+                    script {
+                        echo &quot;### STARt: archiving and publishing for webapi&quot;
+                        if (fileExists(ZAP_REPORT_NAME_API)) {
+                            echo &quot;Archiving artifacts...&quot;
+                            archiveArtifacts artifacts: &quot;${env.ZAP_REPORT_NAME_API}, ${env.WEBAPP_LOG_API}&quot;, allowEmptyArchive: false
+                            echo &quot;Publishing DAST report...&quot;
+                            publishHTML(
+                                allowMissing: false,
+                                alwaysLinkToLastBuild: true,
+                                keepAll: true,
+                                reportDir: &apos;.&apos;,
+                                reportFiles: &quot;${env.ZAP_REPORT_NAME_API}&quot;,
+                                reportName: &apos;DAST Scan Report (webapi)&apos;
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+    post{
+        always{
+            echo &quot;======== always ========&quot;
+            script {
+
+                echo &quot;Destroying MySQL Container...&quot;
+                def containerId = sh(script: &quot;docker ps -a -q --filter &apos;name=${MYSQL_CONTAINER}&apos;&quot;, returnStdout: true).trim()
+                if (containerId) {
+                    echo &quot;Found existing container &apos;${MYSQL_CONTAINER}&apos; (${containerId}). Cleaning it up...&quot;
+                    sh &quot;docker rm -f ${MYSQL_CONTAINER} || true&quot;
+                }
+
+                echo &quot;Stopping application...&quot;
+                if (fileExists(env.WEBAPP_PID_API)) {
+                    sh &quot;kill `cat ${env.WEBAPP_PID_API}` || true&quot;
+                }
+
+                echo &quot;Stopping application...&quot;
+                if (fileExists(env.WEBAPP_PID_UI)) {
+                    sh &quot;kill `cat ${env.WEBAPP_PID_UI}` || true&quot;
+                }
+
+            }
+        }
+        success{
+            echo &quot;======== pipeline executed successfully ========&quot;
+        }
+        failure{
+            echo &quot;======== pipeline execution failed========&quot;
+        }
+    }
+}</script>
+    <sandbox>true</sandbox>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>

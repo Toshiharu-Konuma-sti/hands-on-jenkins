@@ -1,6 +1,7 @@
 *.swp
 
 container/.env
+container/.env-webapp-mysql
 container/docker-compose-volumes.yaml
 container/docker-compose-dependencytrack.yml
 container/mysql/

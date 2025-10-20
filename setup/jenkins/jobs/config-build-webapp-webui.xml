@@ -58,6 +58,8 @@ def parseJarName(String jarFileName) {
     return null
 }
 
+def testResultsProps = &quot;&quot;
+
 pipeline{
     agent{
         label &apos;master&apos;
@@ -69,8 +71,8 @@ pipeline{
     environment {
         GIT_REPO_URL = &apos;http://gitlab:13000/root/webapp-webui.git&apos;
         JAR_FILE_PATTERN = &apos;build/libs/apisl.handson.rollingdice.webapp.webui-*-SNAPSHOT.jar&apos;
-        ARTIFACTORY_URL = &apos;http://artifactory:8081/artifactory&apos;
         ARTIFACTORY_REPO = &apos;hands-on-rollingdice-webapp-webui&apos;
+        ARTIFACTORY_VIRTUAL_REPO = &apos;gradle-virtual&apos;
         SBOM_FILE_PATH = &apos;build/reports/application.cdx.json&apos;
         DEPENDENCY_TRACK_API_KEY_ID = &apos;dependency-track-api-key&apos;
     }
@@ -87,17 +89,17 @@ pipeline{
                git branch: &apos;main&apos;, url: &quot;${env.GIT_REPO_URL}&quot;
             }
         }
-        stage(&apos;Build with JFrog CLI&apos;) {
+        stage(&apos;Build a repository with JFrog CLI&apos;) {
             steps {
                 echo &quot;### START: build with jfrog cli&quot;
-                jf &apos;gradle-config --repo-deploy ${ARTIFACTORY_REPO}&apos;
-                jf &quot;rt gradle build -x test -x check --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
+                jf &quot;gradle-config --repo-deploy ${ARTIFACTORY_REPO} --repo-resolve ${ARTIFACTORY_VIRTUAL_REPO}&quot;
+                jf &quot;gradle assemble -x cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
             }
         }
         stage(&apos;Generate SBOM&apos;) {
             steps {
                 echo &quot;### START: generate SBOM using CycloneDX plugin&quot;
-                sh &apos;./gradlew cyclonedxBom --info&apos;
+                jf &quot;gradle cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
             }
         }
         stage(&apos;Publish SBOM to Dependency-Track&apos;) {
@@ -127,10 +129,10 @@ pipeline{
                   
                     withCredentials([string(credentialsId: &quot;${env.DEPENDENCY_TRACK_API_KEY_ID}&quot;, variable: &apos;API_KEY&apos;)]) {
                         dependencyTrackPublisher artifact: &quot;${env.SBOM_FILE_PATH}&quot;,
-                        projectName: parsedProjectName,
-                        projectVersion: parsedProjectVersion,
-                        synchronous: true,
-                        dependencyTrackApiKey: API_KEY
+                            projectName: parsedProjectName,
+                            projectVersion: parsedProjectVersion,
+                            synchronous: true,
+                            dependencyTrackApiKey: API_KEY
                     }
                 }
             }
@@ -138,18 +140,57 @@ pipeline{
         stage(&quot;Run Unit Tests&quot;){
             steps{
                 echo &quot;### START: run unit tests&quot;
-                sh &quot;./gradlew test -x check --info&quot;
+                jf &quot;gradle test -x cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
             }
             post {
                 always {
                     junit &apos;build/test-results/test/*.xml&apos;
+                    script {
+                        try {
+                            def totalTests = 0
+                            def failedTests = 0
+                            def skippedTests = 0
+                            
+                            def testFilesOutput = sh(script: &quot;find build/test-results/test -name &apos;*.xml&apos;&quot;, returnStdout: true).trim()
+                            
+                            if (testFilesOutput.isEmpty()) {
+                                echo &quot;No JUnit test result files found.&quot;
+                                testResultsProps = &quot;tests.status=no-results&quot;
+                            } else {
+                                def testFiles = testFilesOutput.split(&apos;\\n&apos;)
+                                testFiles.each { filePath -&gt;
+                                    if (fileExists(filePath)) {
+                                        // extract all necessary attribute values from the testsuite tag using the awk command
+                                        // get as a comma-separated string in the order &quot;tests,failures,errors,skipped&quot;
+                                        def awkCommand = &apos;&apos;&apos;awk -F&apos;&quot;&apos; &apos;/&lt;testsuite/ {for(i=1;i&lt;=NF;i++){if($i~/tests=$/){t=$(i+1)} if($i~/failures=$/){f=$(i+1)} if($i~/errors=$/){e=$(i+1)} if($i~/skipped=$/){s=$(i+1)}} printf &quot;%d,%d,%d,%d&quot;, t, f, e, s}&apos; &apos;&apos;&apos;
+                                        def countsStr = sh(script: &quot;${awkCommand} &apos;${filePath}&apos;&quot;, returnStdout: true).trim()
+                                        
+                                        def counts = countsStr.split(&apos;,&apos;)
+                                        if (counts.size() == 4) {
+                                            totalTests += counts[0].toInteger()
+                                            failedTests += counts[1].toInteger() // failures
+                                            failedTests += counts[2].toInteger() // errors
+                                            skippedTests += counts[3].toInteger()
+                                        }
+                                    }
+                                }
+                                
+                                def passedTests = totalTests - failedTests - skippedTests
+                                testResultsProps = &quot;tests.total=${totalTests};tests.passed=${passedTests};tests.failed=${failedTests};tests.skipped=${skippedTests}&quot;
+                                echo &quot;Generated test result properties for Artifactory: ${testResultsProps}&quot;
+                            }
+                        } catch (e) {
+                            echo &quot;Could not parse JUnit test results. Skipping property attachment. Error: ${e.message}&quot;
+                            testResultsProps = &quot;tests.status=unavailable&quot;
+                        }
+                    }
                 }
             }
         }
         stage(&quot;Analyze test codes coverage&quot;){
             steps{
                 echo &quot;### START: analyze a test code coverage&quot;
-                sh &quot;./gradlew jacocoTestReport --info&quot;
+                jf &quot;gradle jacocoTestReport -x cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
             }
             post {
                 always {
@@ -164,15 +205,15 @@ pipeline{
                 }
             }
         }
-        stage(&quot;Analyze codes with Checkstyle&quot;){
+        stage(&quot;Analyze binaries with SpotBugs&quot;){
             steps{
-                echo &quot;### START: analyze codes with checkstyle&quot;
-                sh &quot;./gradlew checkstyleMain checkstyleTest --info&quot;
+                echo &quot;### START: analyze binaries with spotbugs&quot;
+                jf &quot;gradle spotbugsMain spotbugsTest -x cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
             }
             post {
                 always {
                     recordIssues tools: [
-                        checkStyle(pattern: &apos;build/reports/checkstyle/&apos;)
+                        spotBugs(pattern: &apos;build/reports/spotbugs/*.xml&apos;)
                     ]
                 }
             }
@@ -180,7 +221,7 @@ pipeline{
         stage(&quot;Analyze codes with PMD&quot;){
             steps{
                 echo &quot;### START: analyze codes with pmd&quot;
-                sh &quot;./gradlew pmdMain pmdTest --info&quot;
+                jf &quot;gradle pmdMain pmdTest -x cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
             }
             post {
                 always {
@@ -190,22 +231,48 @@ pipeline{
                 }
             }
         }
+        stage(&quot;Analyze codes with Checkstyle&quot;){
+            steps{
+                echo &quot;### START: analyze codes with checkstyle&quot;
+                jf &quot;gradle checkstyleMain checkstyleTest -x cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
+            }
+            post {
+                always {
+                    recordIssues tools: [
+                        checkStyle(pattern: &apos;build/reports/checkstyle/*.xml&apos;)
+                    ]
+                }
+            }
+        }
         stage(&apos;Generate a Javadoc&apos;) {
             steps {
                 echo &quot;### START: generate a javadoc&quot;
-                sh &apos;./gradlew javadoc&apos;
+                jf &quot;gradle javadoc -x cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
             }
-        }
-        stage(&apos;Publish a Javadoc&apos;) {
-            steps {
-                echo &quot;### START: publish a javadoc using javadoc plugin&quot;
-                javadoc javadocDir: &apos;build/docs/javadoc&apos;, keepAll: true
+            post {
+                always {
+                    echo &quot;### START: publish a javadoc using javadoc plugin&quot;
+                    javadoc javadocDir: &apos;build/docs/javadoc&apos;, keepAll: true
+                }
             }
         }
         stage(&apos;Release an artifact to Artifactory&apos;) {
             steps {
                 echo &quot;### START: release an artifact to artifactory&quot;
-                jf &apos;rt u ${JAR_FILE_PATTERN} ${ARTIFACTORY_REPO}&apos;
+                script {
+                    def props = &quot;build.name=${ARTIFACTORY_REPO};build.number=${BUILD_NUMBER};${testResultsProps}&quot;
+                    def spec = &quot;&quot;&quot;{
+                        &quot;files&quot;: [
+                            {
+                                &quot;pattern&quot;: &quot;${JAR_FILE_PATTERN}&quot;,
+                                &quot;target&quot;: &quot;${ARTIFACTORY_REPO}&quot;,
+                                &quot;props&quot;: &quot;${props}&quot;
+                            }
+                        ]
+                    }&quot;&quot;&quot;
+                    writeFile file: &apos;upload.spec&apos;, text: spec
+                    jf &quot;rt u --spec=upload.spec&quot;
+                }
             }
         }
         stage(&apos;Publish a build info to Artifactory&apos;) {
