@@ -393,10 +393,7 @@ prepare_webapp_mysql_files()
 	cp -rf $DWN_DIR/$GIT_REPO-$GIT_BRANCH/mysql/ $CUR_DIR
 
 	echo "" >> $CUR_DIR/.env
-	echo "DB_ROOT_PASS=password" >> $CUR_DIR/.env
-	echo "DB_NAME=mytest" >> $CUR_DIR/.env
-	echo "DB_USER=myuser" >> $CUR_DIR/.env
-	echo "DB_PASS=mypass" >> $CUR_DIR/.env
+	grep "MYSQL_" $DWN_DIR/$GIT_REPO-$GIT_BRANCH/.env >> $CUR_DIR/.env
 }
 # }}}
 

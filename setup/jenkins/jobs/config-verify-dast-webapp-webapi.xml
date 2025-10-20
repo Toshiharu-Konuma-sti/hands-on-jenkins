@@ -114,10 +114,7 @@
                             docker create --name ${MYSQL_CONTAINER} \\
                                 -h zap-mysql \\
                                 --network ${CONTAINER_NETWORK} \\
-                                -e MYSQL_ROOT_PASSWORD=password \\
-                                -e MYSQL_DATABASE=hands_on_db \\
-                                -e MYSQL_USER=myuser \\
-                                -e MYSQL_PASSWORD=mypass \\
+								--env-file .env \\
                                 -e TZ=&quot;Asia/Tokyo&quot; \\
                                 mysql:8.0
                         &quot;&quot;&quot;
