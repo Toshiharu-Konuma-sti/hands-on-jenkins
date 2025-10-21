@@ -345,9 +345,17 @@ prepare_jfrog_oss_files()
 	cp -f $DWN_DIR/$DIR_PTN/templates/docker-compose-volumes.yaml $CUR_DIR
 	cp -f $DWN_DIR/$DIR_PTN/.env $CUR_DIR
 
+	OS_TYPE=$(uname -s)
+	IP_ADDRESS=""
+	if [ "${OS_TYPE}" = "Darwin" ]; then
+		IP_ADDRESS=$(ifconfig | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}' | head -n 1)
+	else
+		IP_ADDRESS=$(ip route get 1.1.1.1 | awk '{printf "%s", $7}')
+	fi
+
 	echo "" >> $CUR_DIR/.env
 	echo "# added the environment variables below" >> $CUR_DIR/.env
-	echo "JF_SHARED_NODE_IP=$(hostname -i)" >> $CUR_DIR/.env
+	echo "JF_SHARED_NODE_IP=${IP_ADDRESS}" >> $CUR_DIR/.env
 	echo "JF_SHARED_NODE_ID=$(hostname -s)" >> $CUR_DIR/.env
 	echo "JF_SHARED_NODE_NAME=$(hostname -s)" >> $CUR_DIR/.env
 }
