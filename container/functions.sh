@@ -255,14 +255,17 @@ prepare_deptrack_server_name()
 	PSQL_BEF=$7
 	PSQL_AFT=$8
 	echo "### START: Replace container names in Dependency-Track's docker-compose YAML"
+
 	# api server and frontend
-	sed -i \
-		-e "s/^\(\s*\)$APIS_BEF:/\1$APIS_AFT:/" \
-		-e "s/^\(\s*\)$FRNT_BEF:/\1$FRNT_AFT:/" $CUR_DIR/$YAML_FIL
+	sed -i.bak \
+		-e "s/^\([[:space:]]*\)${APIS_BEF}:/\1${APIS_AFT}:/" \
+		-e "s/^\([[:space:]]*\)${FRNT_BEF}:/\1${FRNT_AFT}:/" "${CUR_DIR}/${YAML_FIL}"
 	# postgresql
-	sed -i \
-		-e "s/^\(\s*\)$PSQL_BEF:/\1$PSQL_AFT:/" \
-		-e "s|//$PSQL_BEF:|//$PSQL_AFT:|" $CUR_DIR/$YAML_FIL
+	sed -i.bak \
+		-e "s/^\([[:space:]]*\)${PSQL_BEF}:/\1${PSQL_AFT}:/" \
+		-e "s|//${PSQL_BEF}:|//${PSQL_AFT}:|" "${CUR_DIR}/${YAML_FIL}"
+	# remove a back up file
+	rm -f "${CUR_DIR}/${YAML_FIL}.bak"
 }
 # }}}
 
@@ -282,9 +285,11 @@ prepare_deptrack_port_number()
 	FRNT_BEF=$5
 	FRNT_AFT=$6
 	echo "### START: Replace the port number exposed to the hosts in Dependency-Track's docker-compose YAML"
-	sed -i \
-		-e "s/$APIS_BEF/$APIS_AFT/g" \
-		-e "s/$FRNT_BEF:/$FRNT_AFT:/g" $CUR_DIR/$YAML_FIL
+
+	sed -i.bak \
+		-e "s/${APIS_BEF}/${APIS_AFT}/g" \
+		-e "s/${FRNT_BEF}:/${FRNT_AFT}:/g" "${CUR_DIR}/${YAML_FIL}"
+	rm -f "${CUR_DIR}/${YAML_FIL}.bak"
 }
 # }}}
 
@@ -303,9 +308,10 @@ insert_deptrack_container_name()
 	PSQL_AFT=$5
 	echo "### START: Insert the container name in Dependency-Track's docker-compose YAML"
 
-	sed -i "s/^  $APIS_AFT:/  $APIS_AFT:\n    container_name: $APIS_AFT/" $CUR_DIR/$YAML_FIL
-	sed -i "s/^  $FRNT_AFT:/  $FRNT_AFT:\n    container_name: $FRNT_AFT/" $CUR_DIR/$YAML_FIL
-	sed -i "s/^  $PSQL_AFT:/  $PSQL_AFT:\n    container_name: $PSQL_AFT/" $CUR_DIR/$YAML_FIL
+	sed -i.bak "s/^  ${APIS_AFT}:/  ${APIS_AFT}:\n    container_name: ${APIS_AFT}/" "${CUR_DIR}/${YAML_FIL}"
+	sed -i.bak "s/^  ${FRNT_AFT}:/  ${FRNT_AFT}:\n    container_name: ${FRNT_AFT}/" "${CUR_DIR}/${YAML_FIL}"
+	sed -i.bak "s/^  ${PSQL_AFT}:/  ${PSQL_AFT}:\n    container_name: ${PSQL_AFT}/" "${CUR_DIR}/${YAML_FIL}"
+	rm -f "${CUR_DIR}/${YAML_FIL}.bak"
 }
 # }}}
 
