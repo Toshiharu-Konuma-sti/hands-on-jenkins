@@ -401,12 +401,13 @@ prepare_webapp_mysql_files()
 	CUR_DIR=$1
 	DWN_DIR=$2
 	PKG_URL="$3"
-	echo "\n### START: Prepare webapp MySQL files ##########"
-	GIT_REPO=$(echo $PKG_URL | cut -d '/' -f 5)
-	GIT_BRANCH=$(basename $PKG_URL | sed 's/\.[^.]*$//')
 
-	cp -rf $DWN_DIR/$GIT_REPO-$GIT_BRANCH/mysql/ $CUR_DIR
-	cp -f  $DWN_DIR/$GIT_REPO-$GIT_BRANCH/.env-webapp-mysql $CUR_DIR
+	echo "\n### START: Prepare webapp MySQL files ##########"
+	GIT_REPO=$(echo ${PKG_URL} | cut -d '/' -f 5)
+	GIT_BRANCH=$(basename ${PKG_URL} | sed 's/\.[^.]*$//')
+
+	cp -rf "${DWN_DIR}/${GIT_REPO}-${GIT_BRANCH}/mysql" "${CUR_DIR}/"
+	cp -f  "${DWN_DIR}/${GIT_REPO}-${GIT_BRANCH}/.env-webapp-mysql" "${CUR_DIR}/"
 }
 # }}}
 
