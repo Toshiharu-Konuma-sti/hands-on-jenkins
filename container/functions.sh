@@ -93,17 +93,16 @@ get_gitlab_access_token()
 		-H \"Content-Type: application/json\"
 		-d \"{
   \\\"grant_type\\\": \\\"password\\\",
-  \\\"username\\\": \\\"$GL_USER\\\",
-  \\\"password\\\": \\\"$GL_PASS\\\"
+  \\\"username\\\": \\\"${GL_USER}\\\",
+  \\\"password\\\": \\\"${GL_PASS}\\\"
 }\"
-		\"http://$GL_HOST/oauth/token\""
+		\"http://${GL_HOST}/oauth/token\""
 
-	GL_BODY=$(loop_curl_until_success "$CMD_TOKEN")
+	GL_BODY=$(loop_curl_until_success "${CMD_TOKEN}")
 
-	GL_TOKEN=$(echo $GL_BODY | \
-		jq '.access_token' | \
-		sed -z 's/\n//' | sed -z 's/\r//' | \
-		sed -e 's/"//g' | \
+	GL_TOKEN=$(echo "${GL_BODY}" | \
+		jq -r '.access_token' | \
+		tr -d '\n\r' | \
 		tee /dev/tty)
 
 	echo "$GL_TOKEN"
