@@ -93,17 +93,16 @@ get_gitlab_access_token()
 		-H \"Content-Type: application/json\"
 		-d \"{
   \\\"grant_type\\\": \\\"password\\\",
-  \\\"username\\\": \\\"$GL_USER\\\",
-  \\\"password\\\": \\\"$GL_PASS\\\"
+  \\\"username\\\": \\\"${GL_USER}\\\",
+  \\\"password\\\": \\\"${GL_PASS}\\\"
 }\"
-		\"http://$GL_HOST/oauth/token\""
+		\"http://${GL_HOST}/oauth/token\""
 
-	GL_BODY=$(loop_curl_until_success "$CMD_TOKEN")
+	GL_BODY=$(loop_curl_until_success "${CMD_TOKEN}")
 
-	GL_TOKEN=$(echo $GL_BODY | \
-		jq '.access_token' | \
-		sed -z 's/\n//' | sed -z 's/\r//' | \
-		sed -e 's/"//g' | \
+	GL_TOKEN=$(echo "${GL_BODY}" | \
+		jq -r '.access_token' | \
+		tr -d '\n\r' | \
 		tee /dev/tty)
 
 	echo "$GL_TOKEN"
@@ -255,14 +254,17 @@ prepare_deptrack_server_name()
 	PSQL_BEF=$7
 	PSQL_AFT=$8
 	echo "### START: Replace container names in Dependency-Track's docker-compose YAML"
+
 	# api server and frontend
-	sed -i \
-		-e "s/^\(\s*\)$APIS_BEF:/\1$APIS_AFT:/" \
-		-e "s/^\(\s*\)$FRNT_BEF:/\1$FRNT_AFT:/" $CUR_DIR/$YAML_FIL
+	sed -i.bak \
+		-e "s/^\([[:space:]]*\)${APIS_BEF}:/\1${APIS_AFT}:/" \
+		-e "s/^\([[:space:]]*\)${FRNT_BEF}:/\1${FRNT_AFT}:/" "${CUR_DIR}/${YAML_FIL}"
 	# postgresql
-	sed -i \
-		-e "s/^\(\s*\)$PSQL_BEF:/\1$PSQL_AFT:/" \
-		-e "s|//$PSQL_BEF:|//$PSQL_AFT:|" $CUR_DIR/$YAML_FIL
+	sed -i.bak \
+		-e "s/^\([[:space:]]*\)${PSQL_BEF}:/\1${PSQL_AFT}:/" \
+		-e "s|//${PSQL_BEF}:|//${PSQL_AFT}:|" "${CUR_DIR}/${YAML_FIL}"
+	# remove a back up file
+	rm -f "${CUR_DIR}/${YAML_FIL}.bak"
 }
 # }}}
 
@@ -282,9 +284,11 @@ prepare_deptrack_port_number()
 	FRNT_BEF=$5
 	FRNT_AFT=$6
 	echo "### START: Replace the port number exposed to the hosts in Dependency-Track's docker-compose YAML"
-	sed -i \
-		-e "s/$APIS_BEF/$APIS_AFT/g" \
-		-e "s/$FRNT_BEF:/$FRNT_AFT:/g" $CUR_DIR/$YAML_FIL
+
+	sed -i.bak \
+		-e "s/${APIS_BEF}/${APIS_AFT}/g" \
+		-e "s/${FRNT_BEF}:/${FRNT_AFT}:/g" "${CUR_DIR}/${YAML_FIL}"
+	rm -f "${CUR_DIR}/${YAML_FIL}.bak"
 }
 # }}}
 
@@ -303,9 +307,10 @@ insert_deptrack_container_name()
 	PSQL_AFT=$5
 	echo "### START: Insert the container name in Dependency-Track's docker-compose YAML"
 
-	sed -i "s/^  $APIS_AFT:/  $APIS_AFT:\n    container_name: $APIS_AFT/" $CUR_DIR/$YAML_FIL
-	sed -i "s/^  $FRNT_AFT:/  $FRNT_AFT:\n    container_name: $FRNT_AFT/" $CUR_DIR/$YAML_FIL
-	sed -i "s/^  $PSQL_AFT:/  $PSQL_AFT:\n    container_name: $PSQL_AFT/" $CUR_DIR/$YAML_FIL
+	sed -i.bak "s/^  ${APIS_AFT}:/  ${APIS_AFT}:\n    container_name: ${APIS_AFT}/" "${CUR_DIR}/${YAML_FIL}"
+	sed -i.bak "s/^  ${FRNT_AFT}:/  ${FRNT_AFT}:\n    container_name: ${FRNT_AFT}/" "${CUR_DIR}/${YAML_FIL}"
+	sed -i.bak "s/^  ${PSQL_AFT}:/  ${PSQL_AFT}:\n    container_name: ${PSQL_AFT}/" "${CUR_DIR}/${YAML_FIL}"
+	rm -f "${CUR_DIR}/${YAML_FIL}.bak"
 }
 # }}}
 
@@ -339,9 +344,17 @@ prepare_jfrog_oss_files()
 	cp -f $DWN_DIR/$DIR_PTN/templates/docker-compose-volumes.yaml $CUR_DIR
 	cp -f $DWN_DIR/$DIR_PTN/.env $CUR_DIR
 
+	OS_TYPE=$(uname -s)
+	IP_ADDRESS=""
+	if [ "${OS_TYPE}" = "Darwin" ]; then
+		IP_ADDRESS=$(ifconfig | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}' | head -n 1)
+	else
+		IP_ADDRESS=$(ip route get 1.1.1.1 | awk '{printf "%s", $7}')
+	fi
+
 	echo "" >> $CUR_DIR/.env
 	echo "# added the environment variables below" >> $CUR_DIR/.env
-	echo "JF_SHARED_NODE_IP=$(hostname -i)" >> $CUR_DIR/.env
+	echo "JF_SHARED_NODE_IP=${IP_ADDRESS}" >> $CUR_DIR/.env
 	echo "JF_SHARED_NODE_ID=$(hostname -s)" >> $CUR_DIR/.env
 	echo "JF_SHARED_NODE_NAME=$(hostname -s)" >> $CUR_DIR/.env
 }
@@ -368,13 +381,13 @@ clean_jfrog_oss_package()
 # $2: the webapp package url
 get_webapp_package()
 {
-	DWN_DIR=$1
-	PKG_URL=$2
+	DWN_DIR="$1"
+	PKG_URL="$2"
 	echo "\n### START: Get webapp package from the repository in GitHub ##########"
-	PKG_FILE=$(basename $PKG_URL)
-	PKG_PATH=$DWN_DIR/$PKG_FILE
-	curl -LO --output-dir $DWN_DIR $PKG_URL
-	unzip -o $PKG_PATH -d $DWN_DIR
+	PKG_FILE=$(basename "${PKG_URL}")
+	PKG_PATH="${DWN_DIR}/${PKG_FILE}"
+	curl -LO --output-dir "${DWN_DIR}" "${PKG_URL}"
+	unzip -o "${PKG_PATH}" -d "${DWN_DIR}"
 }
 # }}}
 
@@ -387,12 +400,13 @@ prepare_webapp_mysql_files()
 	CUR_DIR=$1
 	DWN_DIR=$2
 	PKG_URL="$3"
-	echo "\n### START: Prepare webapp MySQL files ##########"
-	GIT_REPO=$(echo $PKG_URL | cut -d '/' -f 5)
-	GIT_BRANCH=$(basename $PKG_URL | sed 's/\.[^.]*$//')
 
-	cp -rf $DWN_DIR/$GIT_REPO-$GIT_BRANCH/mysql/ $CUR_DIR
-	cp -f  $DWN_DIR/$GIT_REPO-$GIT_BRANCH/.env-webapp-mysql $CUR_DIR
+	echo "\n### START: Prepare webapp MySQL files ##########"
+	GIT_REPO=$(echo ${PKG_URL} | cut -d '/' -f 5)
+	GIT_BRANCH=$(basename ${PKG_URL} | sed 's/\.[^.]*$//')
+
+	cp -rf "${DWN_DIR}/${GIT_REPO}-${GIT_BRANCH}/mysql" "${CUR_DIR}/"
+	cp -f  "${DWN_DIR}/${GIT_REPO}-${GIT_BRANCH}/.env-webapp-mysql" "${CUR_DIR}/"
 }
 # }}}
 
@@ -409,14 +423,14 @@ move_webapp_codes_to_repo()
 	WEBAPP_PROJECTS="$4"
 
 	echo "\n### START: Move webapp codes to GitLab repository ##########"
-	GIT_REPO=$(echo $PKG_URL | cut -d '/' -f 5)
-	GIT_BRANCH=$(basename $PKG_URL | sed "s/\.[^.]*$//")
+	GIT_REPO=$(echo "${PKG_URL}" | cut -d '/' -f 5)
+	GIT_BRANCH=$(basename "${PKG_URL}" | sed "s/\.[^.]*$//")
 
-	for MY_PROJ in $WEBAPP_PROJECTS; do
-		PROJ_DIR=$(echo $MY_PROJ | sed -e "s/.*-//g")
+	for MY_PROJ in ${WEBAPP_PROJECTS}; do
+		PROJ_DIR=$(echo "${MY_PROJ}" | sed -e "s/.*-//g")
 
-		mv -f $DWN_DIR/$GIT_REPO-$GIT_BRANCH/$PROJ_DIR/* $CUR_DIR/$MY_PROJ/
-		mv -f $DWN_DIR/$GIT_REPO-$GIT_BRANCH/$PROJ_DIR/.git* $CUR_DIR/$MY_PROJ/
+		mv -f "${DWN_DIR}/${GIT_REPO}-${GIT_BRANCH}/${PROJ_DIR}/"* "${CUR_DIR}/${MY_PROJ}/"
+		mv -f "${DWN_DIR}/${GIT_REPO}-${GIT_BRANCH}/${PROJ_DIR}/.git"* "${CUR_DIR}/${MY_PROJ}/"
 	done
 }
 # }}}
@@ -426,16 +440,16 @@ move_webapp_codes_to_repo()
 # $2: the webapp package url
 clean_webapp_package()
 {
-	DWN_DIR=$1
-	PKG_URL=$2
+	DWN_DIR="$1"
+	PKG_URL="$2"
 	echo "\n### START: Clean webapp package ##########"
-	PKG_FILE=$(basename $PKG_URL)
-	PKG_PATH=$DWN_DIR/$PKG_FILE
-	GIT_REPO=$(echo $PKG_URL | cut -d '/' -f 5)
-	GIT_BRANCH=$(basename $PKG_URL | sed 's/\.[^.]*$//')
+	PKG_FILE=$(basename "${PKG_URL}")
+	PKG_PATH="${DWN_DIR}/${PKG_FILE}"
+	GIT_REPO=$(echo "${PKG_URL}" | cut -d '/' -f 5)
+	GIT_BRANCH=$(basename "${PKG_URL}" | sed 's/\.[^.]*$//')
 
-	rm -f $PKG_PATH
-	rm -rf $DWN_DIR/$GIT_REPO-$GIT_BRANCH/
+	rm -f "${PKG_PATH}"
+	rm -rf "${DWN_DIR}/${GIT_REPO}-${GIT_BRANCH}/"
 }
 # }}}
 
@@ -454,12 +468,12 @@ clone_gitlab_repo_with_branch()
 	WEBAPP_PROJECTS="$5"
 
 	echo "\n### START: Clone gitlab repository with branch ##########"
-	for MY_PROJ in $WEBAPP_PROJECTS; do
-		PROJ_DIR=$(echo $MY_PROJ | sed -e "s/.*-//g")
+	for MY_PROJ in ${WEBAPP_PROJECTS}; do
+		PROJ_DIR=$(echo "${MY_PROJ}" | sed -e "s/.*-//g")
 
-		rm -rf $CUR_DIR/$MY_PROJ
-		git clone http://$GL_HOST/$GL_USER/$MY_PROJ.git
-		git -C $CUR_DIR/$MY_PROJ/ checkout -b feature/sample
+		rm -rf "${CUR_DIR}/${MY_PROJ}"
+		git clone "http://${GL_HOST}/${GL_USER}/${MY_PROJ}.git"
+		git -C "${CUR_DIR}/${MY_PROJ}/" checkout -b feature/sample
 	done
 }
 # }}}
