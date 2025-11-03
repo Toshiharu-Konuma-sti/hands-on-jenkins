@@ -1,5 +1,6 @@
 
-ARTF_PKG_URL="https://releases.jfrog.io/artifactory/bintray-artifactory/org/artifactory/oss/docker/jfrog-artifactory-oss/\[RELEASE\]/jfrog-artifactory-oss-\[RELEASE\]-compose.tar.gz"
+# ARTF_PKG_URL="https://releases.jfrog.io/artifactory/bintray-artifactory/org/artifactory/oss/docker/jfrog-artifactory-oss/\[RELEASE\]/jfrog-artifactory-oss-\[RELEASE\]-compose.tar.gz"
+ARTF_PKG_URL="https://releases.jfrog.io/artifactory/bintray-artifactory/org/artifactory/oss/docker/jfrog-artifactory-oss/7.117.19/jfrog-artifactory-oss-7.117.19-compose.tar.gz"
 ARTF_PKG_PTN="jfrog-artifactory-oss-*-compose.tar.gz"
 ARTF_DIR_PTN="artifactory-oss-*"
 
