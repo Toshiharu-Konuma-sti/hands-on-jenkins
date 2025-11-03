@@ -232,7 +232,7 @@ install_required_tools_for_container()
 # }}}
 
 # {{{ install_required_tools_for_setup()
-install_required_tools_for_setup
+install_required_tools_for_setup()
 {
 	echo "\n### START: Install required tools for set up ##########"
 	which java
