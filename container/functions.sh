@@ -220,6 +220,33 @@ clear_ssh_known_hosts()
 # }}}
 
 
+# {{{ install_required_tools_for_container()
+install_required_tools_for_container()
+{
+	echo "\n### START: Install required tools for creating container ##########"
+	which unzip
+	if [ $? -ne 0 ]; then
+		sudo apt -y install unzip
+	fi
+}
+# }}}
+
+# {{{ install_required_tools_for_setup()
+install_required_tools_for_setup
+{
+	echo "\n### START: Install required tools for set up ##########"
+	which java
+	if [ $? -ne 0 ]; then
+		sudo apt install -y openjdk-21-jdk-headless
+	fi
+	which jq
+	if [ $? -ne 0 ]; then
+		sudo apt -y install jq
+	fi
+}
+# }}}
+
+
 # {{{ get_dependencytrack_yaml()
 # $1: the current directory
 # $2: url

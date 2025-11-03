@@ -12,6 +12,8 @@ case "$1" in
 		clear
 		start_banner
 
+		install_required_tools_for_container
+
 		get_dependencytrack_yaml $CUR_DIR $DEPT_YAML_URL $DEPT_YAML_FIL
 		prepare_deptrack_server_name $CUR_DIR $DEPT_YAML_FIL \
 			$DEPT_APIS_NM_BEF $DEPT_APIS_NM_AFT \
@@ -74,6 +76,8 @@ case "$1" in
 		clear
 		start_banner
 		destory_container $CUR_DIR
+
+		install_required_tools_for_container
 
 		get_dependencytrack_yaml $CUR_DIR $DEPT_YAML_URL $DEPT_YAML_FIL
 		prepare_deptrack_server_name $CUR_DIR $DEPT_YAML_FIL \
