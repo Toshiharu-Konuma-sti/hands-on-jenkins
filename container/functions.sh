@@ -220,6 +220,18 @@ clear_ssh_known_hosts()
 # }}}
 
 
+# {{{ install_required_tools()
+install_required_tools()
+{
+	echo "\n### START: Install required tools ##########"
+	which unzip
+	if [ $? -ne 0 ]; then
+		sudo apt -y install unzip
+	fi
+}
+# }}}
+
+
 # {{{ get_dependencytrack_yaml()
 # $1: the current directory
 # $2: url
