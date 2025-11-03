@@ -5,10 +5,6 @@ CUR_DIR=$(cd $(dirname $0); pwd)
 
 call_show_start_banner
 
-echo "\n### START: Install Open JDK ##########"
-which java
-if [ $? -ne 0 ]; then
-	sudo apt install -y openjdk-21-jdk-headless
-fi
+install_required_tools_for_setup
 
 call_show_finish_banner
