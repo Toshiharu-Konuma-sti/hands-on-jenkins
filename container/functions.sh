@@ -224,6 +224,7 @@ clear_ssh_known_hosts()
 install_required_tools_for_container()
 {
 	echo "\n### START: Install required tools for creating container ##########"
+	echo "* check the command > which unzip"
 	which unzip
 	if [ $? -ne 0 ]; then
 		sudo apt -y install unzip
@@ -235,10 +236,12 @@ install_required_tools_for_container()
 install_required_tools_for_setup()
 {
 	echo "\n### START: Install required tools for set up ##########"
+	echo "* check the command > which java"
 	which java
 	if [ $? -ne 0 ]; then
 		sudo apt install -y openjdk-21-jdk-headless
 	fi
+	echo "* check the command > which jq"
 	which jq
 	if [ $? -ne 0 ]; then
 		sudo apt -y install jq
