@@ -224,6 +224,7 @@ clear_ssh_known_hosts()
 install_required_tools_for_container()
 {
 	echo "\n### START: Install required tools for creating container ##########"
+	echo "* check the command > which unzip"
 	which unzip
 	if [ $? -ne 0 ]; then
 		sudo apt -y install unzip
