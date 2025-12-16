@@ -90,7 +90,7 @@
                 }
             }
         }
-        stage(&quot;Generate an OpenAPI&quot;){
+        stage(&quot;Generate an OpenAPI for OWASP ZAP&quot;){
             steps{
                 script {
                     echo &quot;### START: generate an openapi&quot;
