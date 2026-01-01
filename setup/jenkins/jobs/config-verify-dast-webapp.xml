@@ -21,14 +21,14 @@
   <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">
     <script>pipeline{
     agent{
-        label &apos;master&apos;
+        label &quot;master&quot;
     }
     tools {
-        jfrog &apos;my-jfrog-cli&apos;
-        gradle &apos;my-gradle&apos;
+        jfrog &quot;my-jfrog-cli&quot;
+        gradle &quot;my-gradle&quot;
     }
     environment {
-        SERVICES_LIST = &apos;webapi,webui&apos;
+        SERVICES_LIST = &quot;webapi,webui&quot;
 
         MYSQL_CONTAINER = &quot;zap-mysql&quot;
 		ZAP_CONTAINER_UI = &quot;zap-scan-ui-${BUILD_NUMBER}&quot;
@@ -94,7 +94,7 @@
             steps{
                 script {
                     echo &quot;### START: generate an openapi&quot;
-                    def serviceName = &apos;webapi&apos;
+                    def serviceName = &quot;webapi&quot;
                     dir(serviceName) {
                         echo &quot;### [${serviceName}] START: Generate a json format OpenAPI&quot;
                         sh &quot;./gradlew generateOpenApiDocs --no-configuration-cache --info&quot;
@@ -105,9 +105,9 @@
         stage(&quot;Start up MySQL container&quot;) {
             steps {
                 script {
-                    dir(&apos;webapp-repo&apos;) {
+                    dir(&quot;webapp-repo&quot;) {
                         echo &quot;### START: Checkout MySQL configuration&quot;
-                        git url: GIT_REPO_WEBAPP_ORIGIN, branch: &apos;main&apos;
+                        git url: GIT_REPO_WEBAPP_ORIGIN, branch: &quot;main&quot;
 
                         echo &quot;### START: Creating MySQL container&quot;
                         sh &quot;&quot;&quot;
@@ -151,7 +151,7 @@
                             &gt; ${env.WEBAPP_LOG_API} 2&gt;&amp;1 &amp; echo \$! &gt; ${env.WEBAPP_PID_API}
                     &quot;&quot;&quot;
                     echo &quot;Waiting for application api to start...&quot;
-                    timeout(time: TIMEOUT_EXP, unit: &apos;MINUTES&apos;) {
+                    timeout(time: TIMEOUT_EXP, unit: &quot;MINUTES&quot;) {
                         sh &quot;until curl -s -o /dev/null -w &apos;%{http_code}&apos; ${env.HEALTH_CHECK_URL_API} | grep -q &apos;^[245]&apos;; do echo &apos;Waiting for app...&apos;; sleep 5; done&quot;
                     }
                     echo &quot;Application API is up and running.&quot;
@@ -182,13 +182,13 @@
                 }
             }
         }
-        stage(&apos;Run DAST on webui with OWASP ZAP&apos;) {
+        stage(&quot;Run DAST on webui with OWASP ZAP&quot;) {
             steps {
                 script {
                     echo &quot;### START: DAST scan with OWASP ZAP Docker container&quot;
                     sh &apos;id&apos;
-                    def jenkinsUser = sh(script: &apos;id -u&apos;, returnStdout: true).trim()
-                    def jenkinsGroup = sh(script: &apos;id -g&apos;, returnStdout: true).trim()
+                    def jenkinsUser = sh(script: &quot;id -u&quot;, returnStdout: true).trim()
+                    def jenkinsGroup = sh(script: &quot;id -g&quot;, returnStdout: true).trim()
                     try {
                         sh &quot;&quot;&quot;
                             docker run --name ${ZAP_CONTAINER_UI} --network ${CONTAINER_NETWORK} \\
@@ -225,22 +225,22 @@
                                 allowMissing: false,
                                 alwaysLinkToLastBuild: true,
                                 keepAll: true,
-                                reportDir: &apos;.&apos;,
+                                reportDir: &quot;.&quot;,
                                 reportFiles: &quot;${env.ZAP_REPORT_NAME_UI}&quot;,
-                                reportName: &apos;DAST Scan Report (webui)&apos;
+                                reportName: &quot;DAST Scan Report (webui)&quot;
                             )
                         }
                     }
                 }
             }
         }
-        stage(&apos;Run DAST on webapi with OWASP ZAP&apos;) {
+        stage(&quot;Run DAST on webapi with OWASP ZAP&quot;) {
             steps {
                 script {
                     echo &quot;### START: DAST scan with OWASP ZAP Docker container&quot;
-                    sh &apos;id&apos;
-                    def jenkinsUser = sh(script: &apos;id -u&apos;, returnStdout: true).trim()
-                    def jenkinsGroup = sh(script: &apos;id -g&apos;, returnStdout: true).trim()
+                    sh &quot;id&quot;
+                    def jenkinsUser = sh(script: &quot;id -u&quot;, returnStdout: true).trim()
+                    def jenkinsGroup = sh(script: &quot;id -g&quot;, returnStdout: true).trim()
                     try {
                         echo &quot;START: Creaing OWASP Zap container&quot;
                         sh &quot;&quot;&quot;
@@ -258,7 +258,7 @@
                         sh &quot;docker start -a ${ZAP_CONTAINER_API}&quot;
                     } catch (e) {
                         echo &quot;DAST scan to webapi found warnings, but proceeding. Marking build as UNSTABLE.&quot;
-                        currentBuild.result = &apos;UNSTABLE&apos;
+                        currentBuild.result = &quot;UNSTABLE&quot;
                     } finally {
                         echo &quot;Copying &apos;${env.ZAP_REPORT_NAME_API}&apos; from container &apos;${ZAP_CONTAINER_API}&apos; to workspace...&quot;
                         sh &quot;docker cp ${ZAP_CONTAINER_API}:/zap/wrk/${env.ZAP_REPORT_NAME_API} . || true&quot;
@@ -282,9 +282,9 @@
                                 allowMissing: false,
                                 alwaysLinkToLastBuild: true,
                                 keepAll: true,
-                                reportDir: &apos;.&apos;,
+                                reportDir: &quot;.&quot;,
                                 reportFiles: &quot;${env.ZAP_REPORT_NAME_API}&quot;,
-                                reportName: &apos;DAST Scan Report (webapi)&apos;
+                                reportName: &quot;DAST Scan Report (webapi)&quot;
                             )
                         }
                     }
