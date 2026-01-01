@@ -21,18 +21,18 @@
   <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">
     <script>pipeline{
     agent{
-        label &apos;ansible&apos;
+        label &quot;ansible&quot;
     }
     stages{
-        stage(&apos;Set up a credential to an environment variable&apos;) {
+        stage(&quot;Set up a credential to an environment variable&quot;) {
             steps{
                 script{
                     echo &quot;### START: setting up a credential to an environment variable&quot;
                     withCredentials([
                         usernamePassword(
-                            credentialsId: &apos;artifactory-app-credential&apos;,
-                            usernameVariable: &apos;ARTIFACTORY_USERNAME&apos;,
-                            passwordVariable: &apos;ARTIFACTORY_PASSWORD&apos;)
+                            credentialsId: &quot;artifactory-app-credential&quot;,
+                            usernameVariable: &quot;ARTIFACTORY_USERNAME&quot;,
+                            passwordVariable: &quot;ARTIFACTORY_PASSWORD&quot;)
                     ]){
                         try{
                             env.ARTIFACTORY_USERNAME = &quot;${ARTIFACTORY_USERNAME}&quot;
@@ -44,16 +44,16 @@
                 }
             }
         }
-        stage(&apos;Run Ansible Playbook on Ansible Agent to webapi&apos;) {
+        stage(&quot;Run Ansible Playbook on Ansible Agent to webapi&quot;) {
             steps{
                 echo &quot;### START: running ansible playbook on ansible node to webapi&quot;
-                sh &apos;ansible-playbook -i /root/ansible/playbook/inventory_webapi.ini /root/ansible/playbook/deploy_webapi.yml&apos;
+                sh &quot;ansible-playbook -i /root/ansible/playbook/inventory_webapi.ini /root/ansible/playbook/deploy_webapi.yml&quot;
             }
         }
-        stage(&apos;Run Ansible Playbook on Ansible Agent to webui&apos;) {
+        stage(&quot;Run Ansible Playbook on Ansible Agent to webui&quot;) {
             steps{
                 echo &quot;### START: running ansible playbook on ansible node to webui&quot;
-                sh &apos;ansible-playbook -i /root/ansible/playbook/inventory_webui.ini /root/ansible/playbook/deploy_webui.yml&apos;
+                sh &quot;ansible-playbook -i /root/ansible/playbook/inventory_webui.ini /root/ansible/playbook/deploy_webui.yml&quot;
             }
         }
     }
