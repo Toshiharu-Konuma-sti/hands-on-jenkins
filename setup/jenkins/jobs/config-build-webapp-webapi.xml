@@ -62,19 +62,30 @@ def testResultsProps = &quot;&quot;
 
 pipeline{
     agent{
-        label &apos;master&apos;
+        label &quot;master&quot;
     }
     tools {
-        jfrog &apos;my-jfrog-cli&apos;
-        gradle &apos;my-gradle&apos;
+        jfrog &quot;my-jfrog-cli&quot;
+        gradle &quot;my-gradle&quot;
     }
     environment {
-        GIT_REPO_URL = &apos;http://gitlab:13000/root/webapp-webapi.git&apos;
-        JAR_FILE_PATTERN = &apos;build/libs/apisl.handson.rollingdice.webapp.webapi-*-SNAPSHOT.jar&apos;
-        ARTIFACTORY_REPO = &apos;hands-on-rollingdice-webapp-webapi&apos;
-        ARTIFACTORY_VIRTUAL_REPO = &apos;gradle-virtual&apos;
-        SBOM_FILE_PATH = &apos;build/reports/application.cdx.json&apos;
-        DEPENDENCY_TRACK_API_KEY_ID = &apos;dependency-track-api-key&apos;
+        GIT_REPO_URL = &quot;http://gitlab:13000/root/webapp-webapi.git&quot;
+        JAR_FILE_PATTERN = &quot;build/libs/apisl.handson.rollingdice.webapp.webapi-*-SNAPSHOT.jar&quot;
+        ARTIFACTORY_REPO = &quot;hands-on-rollingdice-webapp-webapi&quot;
+        ARTIFACTORY_VIRTUAL_REPO = &quot;gradle-virtual&quot;
+        SBOM_FILE_PATH = &quot;build/reports/application.cdx.json&quot;
+        UNIT_TEST_RESULT_DIR = &quot;build/test-results/test&quot;
+        UNIT_TEST_RESULT_EXT = &quot;*.xml&quot;
+        UNIT_TEST_COVERAGE_PATH = &quot;build/reports/jacoco/test/jacocoTestReport.xml&quot;
+        SPOT_BUGS_RESULT_PATTERN = &quot;build/reports/spotbugs/*.xml&quot;
+        PMD_RESULT_PATTERN = &quot;build/reports/pmd/*.xml&quot;
+        CHECK_STYLE_RESULT_PATTERN = &quot;build/reports/checkstyle/*.xml&quot;
+        JAVADOC_DIR = &quot;build/docs/javadoc&quot;
+        OPEN_API_JSON_FILE  = &quot;build/docs/openapi/openapi.json&quot;
+        OPEN_API_YAML_FILE  = &quot;build/docs/openapi/openapi.yaml&quot;
+        OPEN_API_HTML_DIR = &quot;build/docs/swagger&quot;
+        OPEN_API_HTML_FILE = &quot;index.html&quot;
+        DEPENDENCY_TRACK_API_KEY_ID = &quot;dependency-track-api-key&quot;
     }
     stages{
 //        stage(&quot;Clean up a local environment&quot;){
@@ -86,23 +97,23 @@ pipeline{
         stage(&quot;Checkout a repository from GitLab&quot;){
             steps{
                echo &quot;### START: clone a repository from GitLab&quot;
-               git branch: &apos;main&apos;, url: &quot;${env.GIT_REPO_URL}&quot;
+               git branch: &quot;main&quot;, url: &quot;${env.GIT_REPO_URL}&quot;
             }
         }
-        stage(&apos;Build a repository with JFrog CLI&apos;) {
+        stage(&quot;Build a repository with JFrog CLI&quot;) {
             steps {
                 echo &quot;### START: build with jfrog cli&quot;
                 jf &quot;gradle-config --repo-deploy ${ARTIFACTORY_REPO} --repo-resolve ${ARTIFACTORY_VIRTUAL_REPO}&quot;
                 jf &quot;gradle assemble -x cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
             }
         }
-        stage(&apos;Generate SBOM&apos;) {
+        stage(&quot;Generate SBOM&quot;) {
             steps {
                 echo &quot;### START: generate SBOM using CycloneDX plugin&quot;
                 jf &quot;gradle cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
             }
         }
-        stage(&apos;Publish SBOM to Dependency-Track&apos;) {
+        stage(&quot;Publish SBOM to Dependency-Track&quot;) {
             steps {
                 echo &quot;### START: publich SBOM to Dependency-Track&quot;
                 script {
@@ -127,13 +138,18 @@ pipeline{
                     echo &quot;Parsed Project Name: ${parsedProjectName}&quot;
                     echo &quot;Parsed Project Version: ${parsedProjectVersion}&quot;
                   
-                    withCredentials([string(credentialsId: &quot;${env.DEPENDENCY_TRACK_API_KEY_ID}&quot;, variable: &apos;API_KEY&apos;)]) {
+                    withCredentials([string(credentialsId: &quot;${env.DEPENDENCY_TRACK_API_KEY_ID}&quot;, variable: &quot;API_KEY&quot;)]) {
                         dependencyTrackPublisher artifact: &quot;${env.SBOM_FILE_PATH}&quot;,
                             projectName: parsedProjectName,
                             projectVersion: parsedProjectVersion,
                             synchronous: true,
                             dependencyTrackApiKey: API_KEY
                     }
+                }
+            }
+            post {
+                success {
+                    archiveArtifacts artifacts: &quot;${env.SBOM_FILE_PATH}&quot;, allowEmptyArchive: true
                 }
             }
         }
@@ -144,39 +160,40 @@ pipeline{
             }
             post {
                 always {
-                    junit &apos;build/test-results/test/*.xml&apos;
+                    junit &quot;${env.UNIT_TEST_RESULT_DIR}/${env.UNIT_TEST_RESULT_EXT}&quot;
                     script {
                         try {
                             def totalTests = 0
                             def failedTests = 0
+                            def erroredTests = 0
                             def skippedTests = 0
                             
-                            def testFilesOutput = sh(script: &quot;find build/test-results/test -name &apos;*.xml&apos;&quot;, returnStdout: true).trim()
+                            def testFilesOutput = sh(script: &quot;find ${env.UNIT_TEST_RESULT_DIR} -name &apos;${env.UNIT_TEST_RESULT_EXT}&apos;&quot;, returnStdout: true).trim()
                             
                             if (testFilesOutput.isEmpty()) {
                                 echo &quot;No JUnit test result files found.&quot;
                                 testResultsProps = &quot;tests.status=no-results&quot;
                             } else {
-                                def testFiles = testFilesOutput.split(&apos;\\n&apos;)
+                                def testFiles = testFilesOutput.split(&quot;\\n&quot;)
                                 testFiles.each { filePath -&gt;
                                     if (fileExists(filePath)) {
                                         // extract all necessary attribute values from the testsuite tag using the awk command
                                         // get as a comma-separated string in the order &quot;tests,failures,errors,skipped&quot;
-                                        def awkCommand = &apos;&apos;&apos;awk -F&apos;&quot;&apos; &apos;/&lt;testsuite/ {for(i=1;i&lt;=NF;i++){if($i~/tests=$/){t=$(i+1)} if($i~/failures=$/){f=$(i+1)} if($i~/errors=$/){e=$(i+1)} if($i~/skipped=$/){s=$(i+1)}} printf &quot;%d,%d,%d,%d&quot;, t, f, e, s}&apos; &apos;&apos;&apos;
+                                        def awkCommand = &quot;awk -F&apos;\&quot;&apos; &apos;/&lt;testsuite/ {for(i=1;i&lt;=NF;i++){if(\$i~/tests=\$/){t=\$(i+1)} if(\$i~/failures=\$/){f=\$(i+1)} if(\$i~/errors=\$/){e=\$(i+1)} if(\$i~/skipped=\$/){s=\$(i+1)}} printf \&quot;%d,%d,%d,%d\&quot;, t, f, e, s}&apos;&quot;
                                         def countsStr = sh(script: &quot;${awkCommand} &apos;${filePath}&apos;&quot;, returnStdout: true).trim()
                                         
-                                        def counts = countsStr.split(&apos;,&apos;)
+                                        def counts = countsStr.split(&quot;,&quot;)
                                         if (counts.size() == 4) {
                                             totalTests += counts[0].toInteger()
                                             failedTests += counts[1].toInteger() // failures
-                                            failedTests += counts[2].toInteger() // errors
+                                            erroredTests += counts[2].toInteger() // errors
                                             skippedTests += counts[3].toInteger()
                                         }
                                     }
                                 }
                                 
-                                def passedTests = totalTests - failedTests - skippedTests
-                                testResultsProps = &quot;tests.total=${totalTests};tests.passed=${passedTests};tests.failed=${failedTests};tests.skipped=${skippedTests}&quot;
+                                def passedTests = totalTests - failedTests - erroredTests - skippedTests
+                                testResultsProps = &quot;tests.total=${totalTests};tests.passed=${passedTests};tests.failed=${failedTests};tests.errored=${erroredTests};tests.skipped=${skippedTests}&quot;
                                 echo &quot;Generated test result properties for Artifactory: ${testResultsProps}&quot;
                             }
                         } catch (e) {
@@ -195,12 +212,12 @@ pipeline{
             post {
                 always {
                     recordCoverage(
-                        tools: [[parser: &apos;JACOCO&apos;, pattern: &apos;build/reports/jacoco/test/jacocoTestReport.xml&apos;]],
-                        id: &apos;jacoco&apos;, name: &apos;JaCoCo Coverage&apos;,
-                        sourceCodeRetention: &apos;EVERY_BUILD&apos;,
+                        tools: [[parser: &quot;JACOCO&quot;, pattern: &quot;${env.UNIT_TEST_COVERAGE_PATH}&quot;]],
+                        id: &quot;jacoco&quot;, name: &quot;JaCoCo Coverage&quot;,
+                        sourceCodeRetention: &quot;EVERY_BUILD&quot;,
                         qualityGates: [
-                            [threshold: 60.0, metric: &apos;LINE&apos;, baseline: &apos;PROJECT&apos;, unstable: true],
-                            [threshold: 60.0, metric: &apos;BRANCH&apos;, baseline: &apos;PROJECT&apos;, unstable: true]]
+                            [threshold: 60.0, metric: &quot;LINE&quot;, baseline: &quot;PROJECT&quot;, unstable: true],
+                            [threshold: 60.0, metric: &quot;BRANCH&quot;, baseline: &quot;PROJECT&quot;, unstable: true]]
                     )
                 }
             }
@@ -213,7 +230,7 @@ pipeline{
             post {
                 always {
                     recordIssues tools: [
-                        spotBugs(pattern: &apos;build/reports/spotbugs/*.xml&apos;)
+                        spotBugs(pattern: &quot;${env.SPOT_BUGS_RESULT_PATTERN}&quot;)
                     ]
                 }
             }
@@ -226,7 +243,7 @@ pipeline{
             post {
                 always {
                     recordIssues tools: [
-                        pmdParser(pattern: &apos;build/reports/pmd/*.xml&apos;)
+                        pmdParser(pattern: &quot;${env.PMD_RESULT_PATTERN}&quot;)
                     ]
                 }
             }
@@ -239,12 +256,12 @@ pipeline{
             post {
                 always {
                     recordIssues tools: [
-                        checkStyle(pattern: &apos;build/reports/checkstyle/*.xml&apos;)
+                        checkStyle(pattern: &quot;${env.CHECK_STYLE_RESULT_PATTERN}&quot;)
                     ]
                 }
             }
         }
-        stage(&apos;Generate a Javadoc&apos;) {
+        stage(&quot;Generate a Javadoc&quot;) {
             steps {
                 echo &quot;### START: generate a javadoc&quot;
                 jf &quot;gradle javadoc -x cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
@@ -252,16 +269,23 @@ pipeline{
             post {
                 always {
                     echo &quot;### START: publish a javadoc using javadoc plugin&quot;
-                    javadoc javadocDir: &apos;build/docs/javadoc&apos;, keepAll: true
+                    javadoc javadocDir: &quot;${env.JAVADOC_DIR}&quot;, keepAll: true
                 }
             }
         }
-        stage(&apos;Generate an OpenAPI&apos;) {
+        stage(&quot;Generate an OpenAPI&quot;) {
             steps {
                 echo &quot;### START: generate the json format openapi&quot;
                 jf &quot;gradle generateOpenApiDocs --no-configuration-cache --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
                 echo &quot;### START: convert the html format openapi from the json format it&quot;
                 jf &quot;gradle openApiGenerate --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
+                script {
+                    echo &quot;### START: convert json to yaml&quot;
+                    sh &quot;curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o ./yq&quot;
+                    sh &quot;chmod +x ./yq&quot;
+                    sh &quot;./yq -P -o=yaml &apos;${env.OPEN_API_JSON_FILE}&apos; &gt; &apos;${env.OPEN_API_YAML_FILE}&apos;&quot;
+                    // sh &quot;rm ./yq&quot;
+                }
             }
             post {
                 success {
@@ -269,14 +293,15 @@ pipeline{
                         allowMissing: false,
                         alwaysLinkToLastBuild: true,
                         keepAll: true,
-                        reportDir: &apos;build/docs/swagger&apos;,
-                        reportFiles: &apos;index.html&apos;,
-                        reportName: &apos;OpenAPI Specification&apos;
+                        reportDir: &quot;${env.OPEN_API_HTML_DIR}&quot;,
+                        reportFiles: &quot;${env.OPEN_API_HTML_FILE}&quot;,
+                        reportName: &quot;OpenAPI Specification&quot;
                     )
+                    archiveArtifacts artifacts: &quot;${env.OPEN_API_JSON_FILE}, ${env.OPEN_API_YAML_FILE}&quot;, allowEmptyArchive: true
                 }
             }
         }
-        stage(&apos;Release an artifact to Artifactory&apos;) {
+        stage(&quot;Release an artifact to Artifactory&quot;) {
             steps {
                 echo &quot;### START: release an artifact to artifactory&quot;
                 script {
@@ -290,12 +315,12 @@ pipeline{
                             }
                         ]
                     }&quot;&quot;&quot;
-                    writeFile file: &apos;upload.spec&apos;, text: spec
+                    writeFile file: &quot;upload.spec&quot;, text: spec
                     jf &quot;rt u --spec=upload.spec&quot;
                 }
             }
         }
-        stage(&apos;Publish a build info to Artifactory&apos;) {
+        stage(&quot;Publish a build info to Artifactory&quot;) {
             steps {
                 echo &quot;### START: publish a build info to Artifactory&quot;
                 jf &quot;rt build-publish ${ARTIFACTORY_REPO} ${BUILD_NUMBER}&quot;
