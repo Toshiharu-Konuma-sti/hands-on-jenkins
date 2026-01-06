@@ -19,7 +19,20 @@ services:
     networks:
       - internal
       - external
-    restart: always
+    restart: unless-stopped
+
+  gitlab-runner:
+    hostname: gitlab-runner
+    container_name: gitlab-runner
+    image: gitlab/gitlab-runner:latest
+    networks:
+      - internal
+    volumes:
+      - gitlab-runner-config:/etc/gitlab-runner
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - gitlab
+    restart: unless-stopped
 
   jenkins:
     hostname: jenkins
@@ -38,7 +51,7 @@ services:
     networks:
       - internal
       - external
-    restart: always
+    restart: unless-stopped
 
   ansible:
     container_name: ansible
@@ -54,12 +67,13 @@ services:
       - internal
       - external
     tty: true
-    restart: always
+    restart: unless-stopped
 
 volumes:
   gitlab-config:
   gitlab-logs:
   gitlab-data:
+  gitlab-runner-config:
 
 networks:
   internal:

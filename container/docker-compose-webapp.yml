@@ -18,7 +18,7 @@ services:
       - internal
       - external
     tty: true
-    restart: always
+    restart: unless-stopped
 
   webapp-webapi:
     container_name: webapp-webapi
@@ -30,7 +30,7 @@ services:
       - internal
       - external
     tty: true
-    restart: always
+    restart: unless-stopped
 
   webapp-mysql:
     hostname: webapp-mysql
@@ -47,7 +47,7 @@ services:
     command: mysqld
     env_file:
       - .env-webapp-mysql
-    restart: always
+    restart: unless-stopped
 
 networks:
   internal:
