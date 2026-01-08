@@ -32,4 +32,10 @@ CMD_GROUP="curl -v -f -X POST
 
 GL_BODY=$(loop_curl_until_success "${CMD_GROUP}")
 
+GROUP_ID=$(echo ${GL_BODY} | grep -o '"id":[0-9]*,' | head -n1 | sed 's/"id"://;s/,//')
+
+echo ">>> group name = [${GROUP_NAME}]"
+echo ">>> group path = [${GROUP_PATH}]"
+echo ">>> group id = [${GROUP_ID}]"
+
 call_show_finish_banner
