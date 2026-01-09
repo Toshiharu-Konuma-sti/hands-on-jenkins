@@ -73,12 +73,25 @@ echo ">>> runner token = [${RUNNER_TOKEN}]"
 
 echo "\n### START: set up the configration for gitlab-runner #################"
 
-GITLAB_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' gitlab | awk '{print $NF}')
-ARTIFACTORY_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' artifactory | awk '{print $NF}')
-ANSIBLE_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' ansible | awk '{print $NF}')
-echo ">>> gitlab ip = [${GITLAB_IP}]"
-echo ">>> artifactory ip = [${ARTIFACTORY_IP}]"
-echo ">>> ansible ip = [${ANSIBLE_IP}]"
+GITLAB_NM="gitlab"
+GITLAB_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' ${GITLAB_NM} | awk '{print $NF}')
+DTRACK_NM="dep-track-apiserver"
+DTRACK_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' ${DTRACK_NM} | awk '{print $NF}')
+ARTFCT_NM="artifactory"
+ARTFCT_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' ${ARTFCT_NM} | awk '{print $NF}')
+ANSIBL_NM="ansible"
+ANSIBL_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' ${ANSIBL_NM} | awk '{print $NF}')
+WEBAPI_NM=" webapp-webapi"
+WEBAPI_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' ${WEBAPI_NM} | awk '{print $NF}')
+WEBUI_NM=" webapp-webui"
+WEBUI_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' ${WEBUI_NM} | awk '{print $NF}')
+
+echo ">>> ${GITLAB_NM} ip = [${GITLAB_IP}]"
+echo ">>> ${DTRACK_NM} ip = [${DTRACK_IP}]"
+echo ">>> ${ARTFCT_NM} ip = [${ARTFCT_IP}]"
+echo ">>> ${ANSIBL_NM} ip = [${ANSIBL_IP}]"
+echo ">>> ${WEBAPI_NM} ip = [${WEBAPI_IP}]"
+echo ">>> ${WEBUI_NM} ip = [${WEBUI_IP}]"
 
 docker exec -it gitlab-runner gitlab-runner register \
   --non-interactive \
@@ -89,9 +102,12 @@ docker exec -it gitlab-runner gitlab-runner register \
   --docker-image "alpine:latest" \
   --description "docker-runner-alpine" \
   --docker-network-mode "host" \
-  --docker-extra-hosts "gitlab:${GITLAB_IP}" \
-  --docker-extra-hosts "artifactory:${ARTIFACTORY_IP}" \
-  --docker-extra-hosts "ansible:${ANSIBLE_IP}"
+  --docker-extra-hosts "${GITLAB_NM}:${GITLAB_IP}" \
+  --docker-extra-hosts "${DTRACK_NM}:${DTRACK_IP}" \
+  --docker-extra-hosts "${ARTFCT_NM}:${ARTFCT_IP}" \
+  --docker-extra-hosts "${ANSIBL_NM}:${ANSIBL_IP}" \
+  --docker-extra-hosts "${WEBAPI_NM}:${WEBAPI_IP}" \
+  --docker-extra-hosts "${WEBUI_NM}:${WEBUI_IP}"
 
 echo ">>> $ docker exec gitlab-runner cat /etc/gitlab-runner/config.toml"
 docker exec gitlab-runner cat /etc/gitlab-runner/config.toml
