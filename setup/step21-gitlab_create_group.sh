@@ -33,10 +33,23 @@ CMD_GROUP="curl -v -f -X POST
 GL_BODY=$(loop_curl_until_success "${CMD_GROUP}")
 
 GROUP_ID=$(echo ${GL_BODY} | grep -o '"id":[0-9]*,' | head -n1 | sed 's/"id"://;s/,//')
-
 echo ">>> group name = [${GROUP_NAME}]"
 echo ">>> group path = [${GROUP_PATH}]"
 echo ">>> group id = [${GROUP_ID}]"
+
+
+
+echo "\n### START: get a group id ############################################"
+
+CMD_GRP_ID="curl -v \
+	-H \"Authorization: Bearer ${GL_TOKEN}\"
+	\"http://${GITL_HOST}/api/v4/groups/${GROUP_PATH}\""
+
+GL_BODY=$(loop_curl_until_success "${CMD_GRP_ID}")
+
+GROUP_ID=$(echo "${GL_BODY}" | grep -o '"id":[0-9]*,' | head -n1 | sed 's/"id"://;s/,//')
+echo ">>> group id = [${GROUP_ID}]"
+
 
 echo "\n### START: create a group runner #####################################"
 
@@ -57,8 +70,8 @@ CMD_RUNNER="curl -v -f -X POST
 GL_BODY=$(loop_curl_until_success "${CMD_RUNNER}")
 
 RUNNER_TOKEN=$(echo "${GL_BODY}" | grep -o '"token":"[^"]*"' | sed 's/"token":"//;s/"//')
-
 echo ">>> runner token = [${RUNNER_TOKEN}]"
+
 
 echo "\n### START: set up the configration for gitlab-runner #################"
 
@@ -79,6 +92,7 @@ docker exec -it gitlab-runner gitlab-runner register \
 echo ">>> $ docker exec gitlab-runner cat /etc/gitlab-runner/config.toml"
 docker exec gitlab-runner cat /etc/gitlab-runner/config.toml
 
+
 echo "\n### START: restart gitlab-runner to apply the changed configuration"
 docker restart gitlab-runner
 
@@ -96,6 +110,7 @@ for MY_PROJ in ${WEBAPP_PROJECTS}; do
 
 	PROJECT_ID=$(echo "$PROJECT_INFO" | grep -o '"id":[0-9]*,' | head -n 1 | sed 's/"id"://;s/,//')
 	echo ">>> project name & id = [${MY_PROJ}][${PROJECT_ID}]"
+
 
 	echo "\n### START: transfer project(repository) from user to group ###########"
 
