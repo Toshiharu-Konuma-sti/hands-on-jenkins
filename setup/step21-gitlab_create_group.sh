@@ -76,7 +76,11 @@ echo ">>> runner token = [${RUNNER_TOKEN}]"
 echo "\n### START: set up the configration for gitlab-runner #################"
 
 GITLAB_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' gitlab | awk '{print $NF}')
+ARTIFACTORY_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' artifactory | awk '{print $NF}')
+ANSIBLE_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' ansible | awk '{print $NF}')
 echo ">>> gitlab ip = [${GITLAB_IP}]"
+echo ">>> artifactory ip = [${ARTIFACTORY_IP}]"
+echo ">>> ansible ip = [${ANSIBLE_IP}]"
 
 docker exec -it gitlab-runner gitlab-runner register \
   --non-interactive \
@@ -87,7 +91,9 @@ docker exec -it gitlab-runner gitlab-runner register \
   --docker-image "alpine:latest" \
   --description "docker-runner-alpine" \
   --docker-network-mode "host" \
-  --docker-extra-hosts "gitlab:${GITLAB_IP}"
+  --docker-extra-hosts "gitlab:${GITLAB_IP}" \
+  --docker-extra-hosts "artifactory:${ARTIFACTORY_IP}" \
+  --docker-extra-hosts "ansible:${ANSIBLE_IP}"
 
 echo ">>> $ docker exec gitlab-runner cat /etc/gitlab-runner/config.toml"
 docker exec gitlab-runner cat /etc/gitlab-runner/config.toml
