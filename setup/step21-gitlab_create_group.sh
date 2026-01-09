@@ -36,6 +36,34 @@ echo ">>> group path = [${GITL_GRP_PATH}]"
 echo ">>> group id = [${GROUP_ID}]"
 
 
+echo "\n### START: get the project (repository) to join in the group #########"
+for MY_PROJ in ${WEBAPP_PROJECTS}; do
+
+	echo "\n### START: get the project id (repository id) of [${MY_PROJ}]  #######"
+
+	PROJECT_FULL_PATH="${GITL_USER}/${MY_PROJ}"
+	ENCODED_PATH=$(echo "${PROJECT_FULL_PATH}" | sed 's/\//%2F/g')
+
+	PROJECT_INFO=$(curl -v \
+		-H "Authorization: Bearer ${GL_TOKEN}" \
+		"http://${GITL_HOST}/api/v4/projects/${ENCODED_PATH}")
+
+	PROJECT_ID=$(echo "$PROJECT_INFO" | grep -o '"id":[0-9]*,' | head -n 1 | sed 's/"id"://;s/,//')
+	echo ">>> project name & id = [${MY_PROJ}][${PROJECT_ID}]"
+
+
+	echo "\n### START: transfer project(repository) from user to group ###########"
+
+	CMD_TRANSFER="curl -v -f -X PUT
+		-H \"Authorization: Bearer ${GL_TOKEN}\"
+		\"http://${GITL_HOST}/api/v4/projects/${PROJECT_ID}/transfer?namespace=${GROUP_ID}\""
+
+	GL_BODY=$(loop_curl_until_success "${CMD_TRANSFER}")
+
+done
+
+
+
 
 echo "\n### START: get a group id ############################################"
 
@@ -115,31 +143,5 @@ docker exec gitlab-runner cat /etc/gitlab-runner/config.toml
 
 echo "\n### START: restart gitlab-runner to apply the changed configuration"
 docker restart gitlab-runner
-
-
-for MY_PROJ in ${WEBAPP_PROJECTS}; do
-
-	echo "\n### START: get a project id (repository id) ##########################"
-
-	PROJECT_FULL_PATH="${GITL_USER}/${MY_PROJ}"
-	ENCODED_PATH=$(echo "${PROJECT_FULL_PATH}" | sed 's/\//%2F/g')
-
-	PROJECT_INFO=$(curl -v \
-		-H "Authorization: Bearer ${GL_TOKEN}" \
-		"http://${GITL_HOST}/api/v4/projects/${ENCODED_PATH}")
-
-	PROJECT_ID=$(echo "$PROJECT_INFO" | grep -o '"id":[0-9]*,' | head -n 1 | sed 's/"id"://;s/,//')
-	echo ">>> project name & id = [${MY_PROJ}][${PROJECT_ID}]"
-
-
-	echo "\n### START: transfer project(repository) from user to group ###########"
-
-	CMD_TRANSFER="curl -v -f -X PUT
-		-H \"Authorization: Bearer ${GL_TOKEN}\"
-		\"http://${GITL_HOST}/api/v4/projects/${PROJECT_ID}/transfer?namespace=${GROUP_ID}\""
-
-	GL_BODY=$(loop_curl_until_success "${CMD_TRANSFER}")
-
-done
 
 call_show_finish_banner
