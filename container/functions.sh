@@ -499,8 +499,6 @@ clone_gitlab_repo_with_branch()
 
 	echo "\n### START: Clone gitlab repository with branch ##########"
 	for MY_PROJ in ${WEBAPP_PROJECTS}; do
-		PROJ_DIR=$(echo "${MY_PROJ}" | sed -e "s/.*-//g")
-
 		rm -rf "${CUR_DIR}/${MY_PROJ}"
 		git clone "http://${GL_HOST}/${GL_USER}/${MY_PROJ}.git"
 		git -C "${CUR_DIR}/${MY_PROJ}/" checkout -b feature/sample
