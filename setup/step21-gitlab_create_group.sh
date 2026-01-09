@@ -14,27 +14,25 @@ echo "\n### START: get an access token for GitLab ############################"
 
 GL_TOKEN=$(get_gitlab_access_token "${GITL_USER}" "${GL_PASS}" "${GITL_HOST}")
 
-echo "\n### START: create a group ############################################"
 
-GROUP_NAME="My Hands-on Group"
-GROUP_PATH="my-hands-on-group"
-VISIBILITY="public"
+
+echo "\n### START: create a group ############################################"
 
 CMD_GROUP="curl -v -f -X POST
 	-H \"Authorization: Bearer ${GL_TOKEN}\"
 	-H \"Content-Type: application/json\"
 	-d \"{
-  \\\"name\\\": \\\"${GROUP_NAME}\\\",
-  \\\"path\\\": \\\"${GROUP_PATH}\\\",
-  \\\"visibility\\\": \\\"${VISIBILITY}\\\"
+  \\\"name\\\": \\\"${GITL_GRP_NAME}\\\",
+  \\\"path\\\": \\\"${GITL_GRP_PATH}\\\",
+  \\\"visibility\\\": \\\"${GITL_GRP_VISB}\\\"
 }\"
 	 \"http://${GITL_HOST}/api/v4/groups\""
 
 GL_BODY=$(loop_curl_until_success "${CMD_GROUP}")
 
 GROUP_ID=$(echo ${GL_BODY} | grep -o '"id":[0-9]*,' | head -n1 | sed 's/"id"://;s/,//')
-echo ">>> group name = [${GROUP_NAME}]"
-echo ">>> group path = [${GROUP_PATH}]"
+echo ">>> group name = [${GITL_GRP_NAME}]"
+echo ">>> group path = [${GITL_GRP_PATH}]"
 echo ">>> group id = [${GROUP_ID}]"
 
 
@@ -43,7 +41,7 @@ echo "\n### START: get a group id ############################################"
 
 CMD_GRP_ID="curl -v \
 	-H \"Authorization: Bearer ${GL_TOKEN}\"
-	\"http://${GITL_HOST}/api/v4/groups/${GROUP_PATH}\""
+	\"http://${GITL_HOST}/api/v4/groups/${GITL_GRP_PATH}\""
 
 GL_BODY=$(loop_curl_until_success "${CMD_GRP_ID}")
 
