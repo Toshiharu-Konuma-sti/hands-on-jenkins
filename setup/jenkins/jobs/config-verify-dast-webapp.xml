@@ -35,7 +35,7 @@
 		ZAP_CONTAINER_API = &quot;zap-scan-api-${BUILD_NUMBER}&quot;
         CONTAINER_NETWORK = &quot;intra-net&quot;
 
-        GIT_REPO_HANDSON_PREFIX = &quot;http://gitlab:13000/root/webapp-&quot;
+        GIT_REPO_HANDSON_PREFIX = &quot;http://gitlab:13000/my-hands-on-group/webapp-&quot;
         GIT_REPO_WEBAPP_ORIGIN = &quot;https://github.com/Toshiharu-Konuma-sti/hands-on-rollingdice-webapp.git&quot;
 
         JAR_FILE_PATTERN_API = &quot;webapi/build/libs/apisl.handson.rollingdice.webapp.webapi-*-SNAPSHOT.jar&quot;

@@ -16,6 +16,9 @@ JENK_JOB_TOKEN="1234567890abcdefghijklmnopqrstuvwxyz"
 
 GITL_USER="root"
 GITL_HOST="localhost:13000"
+GITL_GRP_NAME="My Hands-on Group"
+GITL_GRP_PATH="my-hands-on-group"
+GITL_GRP_VISB="public"
 
 DEPT_YAML_URL="https://dependencytrack.org/docker-compose.yml"
 DEPT_YAML_FIL="docker-compose-dependencytrack.yml"

@@ -69,7 +69,7 @@ pipeline{
         gradle &quot;my-gradle&quot;
     }
     environment {
-        GIT_REPO_URL = &quot;http://gitlab:13000/root/webapp-webui.git&quot;
+        GIT_REPO_URL = &quot;http://gitlab:13000/my-hands-on-group/webapp-webui.git&quot;
         JAR_FILE_PATTERN = &quot;build/libs/apisl.handson.rollingdice.webapp.webui-*-SNAPSHOT.jar&quot;
         ARTIFACTORY_REPO = &quot;hands-on-rollingdice-webapp-webui&quot;
         ARTIFACTORY_VIRTUAL_REPO = &quot;gradle-virtual&quot;

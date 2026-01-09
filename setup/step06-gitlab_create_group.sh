@@ -1,0 +1,64 @@
+#!/bin/sh
+
+CUR_DIR=$(cd $(dirname $0); pwd)
+. ${CUR_DIR}/functions.sh
+. ${CUR_DIR}/variables.sh
+
+call_show_start_banner
+
+echo "\n### START: get root's password for GitLab ############################"
+
+GL_PASS=$(get_gitlab_root_password)
+
+echo "\n### START: get an access token for GitLab ############################"
+
+GL_TOKEN=$(get_gitlab_access_token "${GITL_USER}" "${GL_PASS}" "${GITL_HOST}")
+
+
+echo "\n### START: create a group ############################################"
+
+CMD_GROUP="curl -v -f -X POST
+	-H \"Authorization: Bearer ${GL_TOKEN}\"
+	-H \"Content-Type: application/json\"
+	-d \"{
+  \\\"name\\\": \\\"${GITL_GRP_NAME}\\\",
+  \\\"path\\\": \\\"${GITL_GRP_PATH}\\\",
+  \\\"visibility\\\": \\\"${GITL_GRP_VISB}\\\"
+}\"
+	 \"http://${GITL_HOST}/api/v4/groups\""
+
+GL_BODY=$(loop_curl_until_success "${CMD_GROUP}")
+
+GROUP_ID=$(echo ${GL_BODY} | grep -o '"id":[0-9]*,' | head -n1 | sed 's/"id"://;s/,//')
+echo ">>> group name = [${GITL_GRP_NAME}]"
+echo ">>> group path = [${GITL_GRP_PATH}]"
+echo ">>> group id = [${GROUP_ID}]"
+
+
+echo "\n### START: get the project (repository) to join in the group #########"
+for MY_PROJ in ${WEBAPP_PROJECTS}; do
+
+	echo "\n### START: get the project id (repository id) of [${MY_PROJ}]  #######"
+
+	PROJECT_FULL_PATH="${GITL_USER}/${MY_PROJ}"
+	ENCODED_PATH=$(echo "${PROJECT_FULL_PATH}" | sed 's/\//%2F/g')
+
+	PROJECT_INFO=$(curl -v \
+		-H "Authorization: Bearer ${GL_TOKEN}" \
+		"http://${GITL_HOST}/api/v4/projects/${ENCODED_PATH}")
+
+	PROJECT_ID=$(echo "$PROJECT_INFO" | grep -o '"id":[0-9]*,' | head -n 1 | sed 's/"id"://;s/,//')
+	echo ">>> project name & id = [${MY_PROJ}][${PROJECT_ID}]"
+
+
+	echo "\n### START: transfer project(repository) from user to group ###########"
+
+	CMD_TRANSFER="curl -v -f -X PUT
+		-H \"Authorization: Bearer ${GL_TOKEN}\"
+		\"http://${GITL_HOST}/api/v4/projects/${PROJECT_ID}/transfer?namespace=${GROUP_ID}\""
+
+	GL_BODY=$(loop_curl_until_success "${CMD_TRANSFER}")
+
+done
+
+call_show_finish_banner

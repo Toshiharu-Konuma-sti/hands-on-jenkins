@@ -63,6 +63,8 @@ credentials:
               secret: "### You should issue an api-key from Dependency-Track and set it! ###"
 
 unclassified:
+  resourceRoot:
+    url: "http://127.0.0.1:8080/"
   dependencyTrackPublisher:
     dependencyTrackUrl: "http://dep-track-apiserver:8080"
     dependencyTrackApiKey: "dependency-track-api-key"
