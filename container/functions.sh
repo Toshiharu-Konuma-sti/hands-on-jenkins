@@ -459,8 +459,9 @@ move_webapp_codes_to_repo()
 	for MY_PROJ in ${WEBAPP_PROJECTS}; do
 		PROJ_DIR=$(echo "${MY_PROJ}" | sed -e "s/.*-//g")
 
-		mv -f "${DWN_DIR}/${GIT_REPO}-${GIT_BRANCH}/${PROJ_DIR}/"* "${CUR_DIR}/${MY_PROJ}/"
-		mv -f "${DWN_DIR}/${GIT_REPO}-${GIT_BRANCH}/${PROJ_DIR}/.git"* "${CUR_DIR}/${MY_PROJ}/"
+		# mv -f "${DWN_DIR}/${GIT_REPO}-${GIT_BRANCH}/${PROJ_DIR}/"* "${CUR_DIR}/${MY_PROJ}/"
+		# mv -f "${DWN_DIR}/${GIT_REPO}-${GIT_BRANCH}/${PROJ_DIR}/.git"* "${CUR_DIR}/${MY_PROJ}/"
+		rsync -a --remove-source-files "${DWN_DIR}/${GIT_REPO}-${GIT_BRANCH}/${PROJ_DIR}/" "${CUR_DIR}/${MY_PROJ}/"
 	done
 }
 # }}}
