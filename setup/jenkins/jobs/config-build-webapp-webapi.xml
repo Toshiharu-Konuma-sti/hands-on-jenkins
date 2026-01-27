@@ -276,7 +276,7 @@ pipeline{
         stage(&quot;Generate an OpenAPI&quot;) {
             steps {
                 echo &quot;### START: generate the json format openapi&quot;
-                jf &quot;gradle generateOpenApiDocs --no-configuration-cache --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
+                jf &quot;gradle generateOpenApiDocs --no-configuration-cache -x cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
                 echo &quot;### START: convert the html format openapi from the json format it&quot;
                 jf &quot;gradle openApiGenerate --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
                 script {
