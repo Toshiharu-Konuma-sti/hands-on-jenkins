@@ -275,10 +275,8 @@ pipeline{
         }
         stage(&quot;Generate an OpenAPI&quot;) {
             steps {
-                echo &quot;### START: generate the json format openapi&quot;
-                jf &quot;gradle generateOpenApiDocs --no-configuration-cache -x cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
-                echo &quot;### START: convert the html format openapi from the json format it&quot;
-                jf &quot;gradle openApiGenerate --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
+                echo &quot;### START: generate openapi spec&quot;
+                jf &quot;gradle openApiGenerate -x cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
                 script {
                     echo &quot;### START: convert json to yaml&quot;
                     sh &quot;curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o ./yq&quot;
