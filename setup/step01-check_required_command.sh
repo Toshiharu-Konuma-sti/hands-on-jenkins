@@ -1,10 +1,10 @@
 #!/bin/sh
 
 CUR_DIR=$(cd $(dirname $0); pwd)
-. $CUR_DIR/functions.sh
+. $CUR_DIR/common.sh
 
 call_show_start_banner
 
-install_required_tools_for_setup
+check_required_commands "java jq"
 
 call_show_finish_banner

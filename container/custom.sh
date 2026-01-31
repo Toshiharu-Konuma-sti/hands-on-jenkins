@@ -1,73 +1,4 @@
 
-# {{{ start_banner()
-start_banner()
-{
-	echo "############################################################"
-	echo "# START SCRIPT"
-	echo "############################################################"
-}
-# }}}
-
-# {{{ finish_banner()
-# $1: time to start this script
-finish_banner()
-{
-	S_TIME=$1
-	E_TIME=$(date +%s)
-	DURATION=$((E_TIME - S_TIME))
-	echo "############################################################"
-	echo "# FINISH SCRIPT ($DURATION seconds)"
-	echo "############################################################"
-}
-# }}}
-
-# {{{ call_own_fname()
-call_own_fname()
-{
-	OFNM=$(basename $0)
-	echo "$OFNM"
-}
-# }}}
-
-# {{{ call_show_start_banner()
-# $0: the name of the script being executed 
-call_show_start_banner()
-{
-	echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n> START: Script = [$(call_own_fname)]\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
-}
-# }}}
-
-# {{{ call_show_finish_banner()
-# $0: the name of the script being executed 
-call_show_finish_banner()
-{
-	echo "\n<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n< FINISH: Script = [$(call_own_fname)]\n<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-}
-# }}}
-
-# {{{ loop_curl_until_success()
-# $1: the command to call with cURL
-loop_curl_until_success()
-{
-	CMD_CURL=$1
-	echo "$CMD_CURL" >&2
-	BODY_CURL=""
-	WAIT_SEC=5
-	while true; do
-		BODY_CURL=$(eval $CMD_CURL)
-		if [ $? -eq 0 ]; then
-			echo "-> result: connection successful." >&2
-			break
-		else
-			echo "-> result: connection failed. will try again in $WAIT_SEC seconds." >&2
-			sleep $WAIT_SEC
-		fi
-	done
-	echo "$BODY_CURL" >&2
-	echo "$BODY_CURL"
-}
-# }}}
-
 # {{{ get_gitlab_root_password()
 get_gitlab_root_password()
 {
@@ -106,17 +37,6 @@ get_gitlab_access_token()
 		tee /dev/tty)
 
 	echo "$GL_TOKEN"
-}
-# }}}
-
-# {{{ prepare_download_dir()
-# $1: the current directory
-prepare_download_dir()
-{
-	CUR_DIR=$1
-	DOWN_DIR=$CUR_DIR/../download
-	mkdir -p $DOWN_DIR
-	echo $DOWN_DIR
 }
 # }}}
 
@@ -216,36 +136,6 @@ clear_ssh_known_hosts()
 {
 	echo "\n### START: Clear the know_hosts file for ssh ##########"
 	docker exec ansible sh -c '[ -f ~/.ssh/known_hosts ] && > ~/.ssh/known_hosts'
-}
-# }}}
-
-
-# {{{ install_required_tools_for_container()
-install_required_tools_for_container()
-{
-	echo "\n### START: Install required tools for creating container ##########"
-	echo "* check the command > which unzip"
-	which unzip
-	if [ $? -ne 0 ]; then
-		sudo apt -y install unzip
-	fi
-}
-# }}}
-
-# {{{ install_required_tools_for_setup()
-install_required_tools_for_setup()
-{
-	echo "\n### START: Install required tools for set up ##########"
-	echo "* check the command > which java"
-	which java
-	if [ $? -ne 0 ]; then
-		sudo apt install -y openjdk-21-jdk-headless
-	fi
-	echo "* check the command > which jq"
-	which jq
-	if [ $? -ne 0 ]; then
-		sudo apt -y install jq
-	fi
 }
 # }}}
 
@@ -507,14 +397,6 @@ clone_gitlab_repo_with_branch()
 }
 # }}}
 
-
-# {{{ show_list_container()
-show_list_container()
-{
-	echo "\n### START: Show a list of container ##########"
-	docker ps -a
-}
-# }}}
 
 # {{{ show_url()
 show_url()

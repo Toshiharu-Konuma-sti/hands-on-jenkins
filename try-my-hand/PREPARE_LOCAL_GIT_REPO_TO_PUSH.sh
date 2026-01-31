@@ -2,7 +2,7 @@
 
 S_TIME=$(date +%s)
 CUR_DIR=$(cd $(dirname $0); pwd)
-. $CUR_DIR/functions.sh
+. $CUR_DIR/common.sh
 . $CUR_DIR/variables.sh
 
 DWN_DIR=$(prepare_download_dir $CUR_DIR)

@@ -60,7 +60,7 @@ import_jenkins_job()
 # }}}
 
 CUR_DIR=$(cd $(dirname $0); pwd)
-. $CUR_DIR/functions.sh
+. $CUR_DIR/common.sh
 . $CUR_DIR/variables.sh
 
 call_show_start_banner
