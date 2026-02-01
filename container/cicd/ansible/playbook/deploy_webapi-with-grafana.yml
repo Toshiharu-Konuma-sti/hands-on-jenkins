@@ -14,7 +14,10 @@
     - name: Import the main task
       ansible.builtin.import_tasks: task_main.yml
 
-    - name: Import a task to download pyroscope
+    - name: Download a jar from Artifactory
+      ansible.builtin.import_tasks: task_download_jar_from_artf.yml
+
+    - name: Download pyroscope
       ansible.builtin.import_tasks: task_download_pyroscope.yml
 
     - name: Import a task to start webapp

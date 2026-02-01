@@ -14,5 +14,8 @@
     - name: Import the main task
       ansible.builtin.import_tasks: task_main.yml
 
+    - name: Download a jar from Artifactory
+      ansible.builtin.import_tasks: task_download_jar_from_artf.yml
+
     - name: Import a task to start webapp
       ansible.builtin.import_tasks: task_start_webapp.yml
