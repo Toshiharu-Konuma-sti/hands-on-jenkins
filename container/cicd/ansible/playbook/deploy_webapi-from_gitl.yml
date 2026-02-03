@@ -1,0 +1,118 @@
+
+- name: Deploy WebAPI from GitLab Package Registry (Maven)
+  hosts: docker_containers
+  become: yes
+  gather_facts: yes
+
+  vars:
+    # プロジェクトID
+    project_id: "2"
+    gitlab_url: "http://gitlab:13000"
+
+    # アプリケーション設定
+    app_name: "webapp-webapi"
+    app_dir: "/opt/webapp-webapi"
+
+    # Maven アーティファクト情報
+    maven_group_id: "jp.sios"
+    maven_artifact_id: "apisl.handson.rollingdice.webapp.webapi"
+    maven_version: "0.0.1-SNAPSHOT"
+    
+    # URLパス生成用
+    maven_group_path: "{{ maven_group_id | replace('.', '/') }}"
+
+    # 保存名
+    jar_file: "webapi.jar"
+
+    java_home: "/usr/lib/jvm/java-21-openjdk-amd64"
+    ci_job_token: "{{ lookup('env', 'CI_JOB_TOKEN') | default('no_token_provided') }}"
+
+  tasks:
+    # -------------------------------------------------------
+    # 1. 環境セットアップ
+    # -------------------------------------------------------
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Stop existing application
+      ansible.builtin.shell: |
+        pkill -f "{{ maven_artifact_id }}" || true
+      register: pkill_result
+      changed_when: pkill_result.rc == 0
+      failed_when: false
+
+    - name: Install OpenJDK 21
+      ansible.builtin.apt:
+        name: openjdk-21-jdk-headless
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Create application directory
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        mode: '0755'
+
+    # -------------------------------------------------------
+    # 2. 最新バージョンの特定とダウンロード（ロジック刷新）
+    # -------------------------------------------------------
+    - name: Download maven-metadata.xml
+      ansible.builtin.get_url:
+        url: >-
+          {{ gitlab_url }}/api/v4/projects/{{ project_id }}/packages/maven/{{ maven_group_path }}/{{ maven_artifact_id }}/{{ maven_version }}/maven-metadata.xml
+        dest: "{{ app_dir }}/maven-metadata.xml"
+        force: yes
+        headers:
+          JOB-TOKEN: "{{ ci_job_token }}"
+
+    # 'plain' を探すのをやめ、メタデータのトップにある <timestamp> と <buildNumber> を直接取得します
+    # これにより、常に「最新のデプロイ分」が取得できます
+    - name: Extract timestamp
+      ansible.builtin.shell: |
+        grep "<timestamp>" {{ app_dir }}/maven-metadata.xml | head -n 1 | sed -e 's/.*<timestamp>\(.*\)<\/timestamp>.*/\1/'
+      register: maven_timestamp
+      changed_when: false
+
+    - name: Extract build number
+      ansible.builtin.shell: |
+        grep "<buildNumber>" {{ app_dir }}/maven-metadata.xml | head -n 1 | sed -e 's/.*<buildNumber>\(.*\)<\/buildNumber>.*/\1/'
+      register: maven_build_number
+      changed_when: false
+
+    - name: Set real filename
+      set_fact:
+        # 構成ルール: artifactId - baseVersion - timestamp - buildNumber .jar
+        # 例: webapp-webapi-0.0.1-20260204.120000-1.jar
+        real_jar_filename: "{{ maven_artifact_id }}-{{ maven_version | replace('-SNAPSHOT', '') }}-{{ maven_timestamp.stdout }}-{{ maven_build_number.stdout }}.jar"
+
+    - name: Debug detected filename
+      debug:
+        msg: "Detected latest file: {{ real_jar_filename }}"
+
+    - name: Download the actual JAR file
+      ansible.builtin.get_url:
+        url: >-
+          {{ gitlab_url }}/api/v4/projects/{{ project_id }}/packages/maven/{{ maven_group_path }}/{{ maven_artifact_id }}/{{ maven_version }}/{{ real_jar_filename }}
+        dest: "{{ app_dir }}/{{ jar_file }}"
+        mode: '0644'
+        force: yes
+        headers:
+          JOB-TOKEN: "{{ ci_job_token }}"
+      register: download_result
+
+    # -------------------------------------------------------
+    # 3. アプリケーション起動
+    # -------------------------------------------------------
+    - name: Start Spring Boot application
+      ansible.builtin.shell: |
+        {{ java_home }}/bin/java -jar {{ app_dir }}/{{ jar_file }} \
+        --management.otlp.metrics.export.enabled=false \
+        --otel.sdk.disabled=true \
+        > /proc/1/fd/1 2>/proc/1/fd/2 &
+      args:
+        chdir: "{{ app_dir }}"
+      async: 1
+      poll: 0
+      changed_when: true
