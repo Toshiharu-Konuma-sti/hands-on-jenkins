@@ -6,7 +6,8 @@
 
   vars:
     # プロジェクトID
-    project_id: "2"
+    # project_id: "2"
+    project_id: "{{ project_id }}"
     gitlab_url: "http://gitlab:13000"
 
     # アプリケーション設定
