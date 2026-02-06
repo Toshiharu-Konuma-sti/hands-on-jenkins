@@ -6,11 +6,14 @@
     vars_common.yml
 
   vars:
-    jar_base: "apisl.handson.rollingdice.webapp.webui"
+    jar_base: "apisl.handson.rollingdice.webapp.webapi"
     jar_version: "0.0.1-SNAPSHOT"
-    app_name: "webapp-webui"
+    app_name: "webapp-webapi"
 
   tasks:
+    - name: Debug environment variables for artifactory
+      ansible.builtin.import_tasks: task_debug_for_artf.yml
+
     - name: Import the main task
       ansible.builtin.import_tasks: task_main.yml
 

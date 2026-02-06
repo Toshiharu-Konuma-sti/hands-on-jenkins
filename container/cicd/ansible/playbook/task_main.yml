@@ -1,11 +1,3 @@
-- name: Debug environment variables
-  ansible.builtin.debug:
-    msg: |
-      user1: {{ lookup('env', 'ARTIFACTORY_USERNAME') }}
-      user2: {{ artifactory_username }}
-      pass1: {{ lookup('env', 'ARTIFACTORY_PASSWORD') }}
-      pass2: {{ artifactory_password }}
-
 - name: Update apt cache
   apt:
     update_cache: yes
