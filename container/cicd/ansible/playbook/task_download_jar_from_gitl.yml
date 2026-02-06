@@ -1,0 +1,39 @@
+- name: Download maven-metadata.xml
+  ansible.builtin.get_url:
+    url: >-
+      {{ gitlab_url }}/{{ project_id }}/packages/maven/{{ maven_group_path }}/{{ jar_base }}/{{ jar_version }}/maven-metadata.xml
+    dest: "{{ app_dir }}/maven-metadata.xml"
+    force: yes
+    headers:
+      JOB-TOKEN: "{{ ci_job_token }}"
+
+- name: Extract timestamp
+  ansible.builtin.shell: |
+    grep "<timestamp>" {{ app_dir }}/maven-metadata.xml | head -n 1 | sed -e 's/.*<timestamp>\(.*\)<\/timestamp>.*/\1/'
+  register: maven_timestamp
+  changed_when: false
+
+- name: Extract build number
+  ansible.builtin.shell: |
+    grep "<buildNumber>" {{ app_dir }}/maven-metadata.xml | head -n 1 | sed -e 's/.*<buildNumber>\(.*\)<\/buildNumber>.*/\1/'
+  register: maven_build_number
+  changed_when: false
+
+- name: Set real filename
+  set_fact:
+    real_jar_filename: "{{ jar_base }}-{{ jar_version | replace('-SNAPSHOT', '') }}-{{ maven_timestamp.stdout }}-{{ maven_build_number.stdout }}.jar"
+
+- name: Debug detected filename
+  debug:
+    msg: "Detected latest file: {{ real_jar_filename }}"
+
+- name: Download the actual JAR file
+  ansible.builtin.get_url:
+    url: >-
+      {{ gitlab_url }}/{{ project_id }}/packages/maven/{{ maven_group_path }}/{{ jar_base }}/{{ jar_version }}/{{ real_jar_filename }}
+    dest: "{{ app_dir }}/{{ jar_file }}"
+    mode: '0644'
+    force: yes
+    headers:
+      JOB-TOKEN: "{{ ci_job_token }}"
+  register: download_result

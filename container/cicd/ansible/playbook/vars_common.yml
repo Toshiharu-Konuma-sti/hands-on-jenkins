@@ -8,6 +8,11 @@ artifactory_url: "http://artifactory:8081/artifactory/hands-on-rollingdice-{{ ap
 artifactory_username: "{{ lookup('env', 'ARTIFACTORY_USERNAME') }}"
 artifactory_password: "{{ lookup('env', 'ARTIFACTORY_PASSWORD') }}"
 
+# --- Download Settings for GitLab Package Registory ---
+gitlab_url: "http://gitlab:13000/api/v4/projects"
+maven_group_id: "jp.sios"
+maven_group_path: "{{ maven_group_id | replace('.', '/') }}"
+
 # --- Download Settings for Pyroscope ---
 pscope_jar_url: "https://github.com/grafana/pyroscope-java/releases/download/v2.0.0"
 pscope_jar_file: "pyroscope.jar"

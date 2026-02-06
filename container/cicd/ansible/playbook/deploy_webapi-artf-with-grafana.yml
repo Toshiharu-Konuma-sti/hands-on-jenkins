@@ -1,4 +1,4 @@
-- name: Deploy to Docker container
+- name: Deploy WebAPI from Artifactory
   hosts: docker_containers
   become: yes
 
