@@ -45,6 +45,7 @@ case "$1" in
 	"up-exporter")
 		clear
 		start_banner
+		check_required_commands "docker"
 		create_container_exporter $CUR_DIR
 		show_list_container
 		finish_banner $S_TIME
@@ -52,6 +53,7 @@ case "$1" in
 	"down")
 		clear
 		start_banner
+		check_required_commands "docker"
 		destory_container $CUR_DIR
 		show_list_container
 		finish_banner $S_TIME
@@ -59,6 +61,7 @@ case "$1" in
 	"rebuild")
 		clear
 		start_banner
+		check_required_commands "docker"
 		rebuild_container $CUR_DIR $2
 		clear_ssh_known_hosts
 		show_list_container
@@ -76,9 +79,9 @@ case "$1" in
 	"")
 		clear
 		start_banner
-		destory_container $CUR_DIR
-
 		check_required_commands "docker unzip"
+
+		destory_container $CUR_DIR
 
 		get_dependencytrack_yaml $CUR_DIR $DEPT_YAML_URL $DEPT_YAML_FIL
 		prepare_deptrack_server_name $CUR_DIR $DEPT_YAML_FIL \
