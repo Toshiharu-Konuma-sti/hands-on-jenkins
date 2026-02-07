@@ -1,4 +1,4 @@
-- name: Deploy to Docker container
+- name: Deploy WebAPI from Artifactory
   hosts: docker_containers
   become: yes
 
@@ -11,11 +11,14 @@
     app_name: "webapp-webapi"
 
   tasks:
+    - name: Debug environment variables for artifactory
+      ansible.builtin.import_tasks: task_debug_for_artf.yml
+
     - name: Import the main task
       ansible.builtin.import_tasks: task_main.yml
 
-    - name: Import a task to download pyroscope
-      ansible.builtin.import_tasks: task_download_pyroscope.yml
+    - name: Download a jar from Artifactory
+      ansible.builtin.import_tasks: task_download_jar_from_artf.yml
 
     - name: Import a task to start webapp
-      ansible.builtin.import_tasks: task_start_webapp-with-grafana.yml
+      ansible.builtin.import_tasks: task_start_webapp.yml

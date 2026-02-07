@@ -1,0 +1,33 @@
+- name: Deploy WebAPI from GitLab Package Registry (Maven)
+  hosts: docker_containers
+  become: yes
+  gather_facts: yes
+
+  pre_tasks:
+    - name: Validate required variables
+      ansible.builtin.assert:
+        that:
+          - project_id is defined
+          - ci_job_token is defined
+        fail_msg: "ERROR: 'project_id' and 'ci_job_token' must be passed via -e (Extra Vars)."
+
+  vars_files:
+    vars_common.yml
+
+  vars:
+    jar_base: "apisl.handson.rollingdice.webapp.webapi"
+    jar_version: "0.0.1-SNAPSHOT"
+    app_name: "webapp-webapi"
+
+  tasks:
+    - name: Debug environment variables for gitlab
+      ansible.builtin.import_tasks: task_debug_for_gitl.yml
+
+    - name: Import the main task
+      ansible.builtin.import_tasks: task_main.yml
+
+    - name: Download a jar from GitLab Package Registory
+      ansible.builtin.import_tasks: task_download_jar_from_gitl.yml
+
+    - name: Import a task to start webapp
+      ansible.builtin.import_tasks: task_start_webapp.yml

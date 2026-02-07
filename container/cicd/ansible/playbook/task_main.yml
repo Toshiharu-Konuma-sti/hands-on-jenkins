@@ -1,13 +1,5 @@
-- name: Debug environment variables
-  ansible.builtin.debug:
-    msg: |
-      user1: {{ lookup('env', 'ARTIFACTORY_USERNAME') }}
-      user2: {{ artifactory_username }}
-      pass1: {{ lookup('env', 'ARTIFACTORY_PASSWORD') }}
-      pass2: {{ artifactory_password }}
-
 - name: Update apt cache
-  apt:
+  ansible.builtin.apt:
     update_cache: yes
   when: ansible_os_family == "Debian"
 
@@ -29,12 +21,3 @@
     path: "{{ app_dir }}"
     state: directory
     mode: '0755'
-
-- name: Download JAR file from Artifactory
-  ansible.builtin.get_url:
-    url: "{{ artifactory_url }}/{{ jar_file }}"
-    dest: "{{ app_dir }}/{{ jar_file }}"
-    username: "{{ artifactory_username }}"
-    password: "{{ artifactory_password }}"
-    mode: '0644'
-    validate_certs: no

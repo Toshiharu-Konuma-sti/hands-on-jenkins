@@ -1,0 +1,5 @@
+- name: Debug environment variables for gitlab
+  ansible.builtin.debug:
+    msg: |
+      project_id: {{ project_id }}
+      ci_job_token: {{ ci_job_token }}

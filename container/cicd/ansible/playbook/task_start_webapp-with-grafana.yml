@@ -1,6 +1,9 @@
 - name: Start Spring Boot application
   ansible.builtin.shell: |
-    {{ java_home }}/bin/java -javaagent:{{ app_dir }}/{{ pscope_jar_file }} -jar {{ app_dir }}/{{ jar_file }} > /proc/1/fd/1 2>/proc/1/fd/2 &
+    {{ java_home }}/bin/java \
+    -javaagent:{{ app_dir }}/{{ pscope_jar_file }} \
+    -jar {{ app_dir }}/{{ jar_file }} \
+    > /proc/1/fd/1 2>/proc/1/fd/2 &
   args:
     chdir: "{{ app_dir }}"
   async: 1

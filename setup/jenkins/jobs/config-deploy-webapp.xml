@@ -47,13 +47,13 @@
         stage(&quot;Run Ansible Playbook on Ansible Agent to webapi&quot;) {
             steps{
                 echo &quot;### START: running ansible playbook on ansible node to webapi&quot;
-                sh &quot;ansible-playbook -i /root/ansible/playbook/inventory_webapi.ini /root/ansible/playbook/deploy_webapi.yml&quot;
+                sh &quot;ansible-playbook -i /root/ansible/playbook/inventory_webapi.ini /root/ansible/playbook/deploy_webapi-artf.yml&quot;
             }
         }
         stage(&quot;Run Ansible Playbook on Ansible Agent to webui&quot;) {
             steps{
                 echo &quot;### START: running ansible playbook on ansible node to webui&quot;
-                sh &quot;ansible-playbook -i /root/ansible/playbook/inventory_webui.ini /root/ansible/playbook/deploy_webui.yml&quot;
+                sh &quot;ansible-playbook -i /root/ansible/playbook/inventory_webui.ini /root/ansible/playbook/deploy_webui-artf.yml&quot;
             }
         }
     }

@@ -1,7 +1,8 @@
 #!/bin/sh
 
 CUR_DIR=$(cd $(dirname $0); pwd)
-. ${CUR_DIR}/functions.sh
+. ${CUR_DIR}/common.sh
+. ${CUR_DIR}/custom.sh
 . ${CUR_DIR}/variables.sh
 
 call_show_start_banner
@@ -14,7 +15,7 @@ echo "\n### START: get an access token for GitLab"
 
 GL_TOKEN=$(get_gitlab_access_token "${GITL_USER}" "${GL_PASS}" "${GITL_HOST}")
 
-echo "\n### START: import a repository's webhook to GitLab"
+echo "\n### START: import a webhook to GitLab repositories"
 
 for MY_PROJ in ${WEBAPP_PROJECTS}; do
 	CMD_HOOK="curl -v -f -X POST

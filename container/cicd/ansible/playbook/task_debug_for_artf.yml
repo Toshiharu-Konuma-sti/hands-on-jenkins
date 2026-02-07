@@ -1,0 +1,7 @@
+- name: Debug environment variables for artifactory
+  ansible.builtin.debug:
+    msg: |
+      user1: {{ lookup('env', 'ARTIFACTORY_USERNAME') }}
+      user2: {{ artifactory_username }}
+      pass1: {{ lookup('env', 'ARTIFACTORY_PASSWORD') }}
+      pass2: {{ artifactory_password }}

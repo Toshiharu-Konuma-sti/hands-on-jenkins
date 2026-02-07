@@ -1,7 +1,8 @@
 #!/bin/sh
 
 CUR_DIR=$(cd $(dirname $0); pwd)
-. ${CUR_DIR}/functions.sh
+. ${CUR_DIR}/common.sh
+. ${CUR_DIR}/custom.sh
 . ${CUR_DIR}/variables.sh
 
 call_show_start_banner
@@ -51,25 +52,32 @@ echo ">>> runner token = [${RUNNER_TOKEN}]"
 
 echo "\n### START: set up the configration for gitlab-runner #################"
 
-GITLAB_NM="gitlab"
-GITLAB_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' ${GITLAB_NM} | awk '{print $NF}')
-DTRACK_NM="dep-track-apiserver"
-DTRACK_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' ${DTRACK_NM} | awk '{print $NF}')
-ARTFCT_NM="artifactory"
-ARTFCT_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' ${ARTFCT_NM} | awk '{print $NF}')
-ANSIBL_NM="ansible"
-ANSIBL_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' ${ANSIBL_NM} | awk '{print $NF}')
-WEBAPI_NM=" webapp-webapi"
-WEBAPI_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' ${WEBAPI_NM} | awk '{print $NF}')
-WEBUI_NM=" webapp-webui"
-WEBUI_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' ${WEBUI_NM} | awk '{print $NF}')
+echo ">>> Clear existing configuration in config.toml"
+docker exec gitlab-runner touch /etc/gitlab-runner/config.toml
+docker exec gitlab-runner sh -c '> /etc/gitlab-runner/config.toml'
 
-echo ">>> ${GITLAB_NM} ip = [${GITLAB_IP}]"
-echo ">>> ${DTRACK_NM} ip = [${DTRACK_IP}]"
-echo ">>> ${ARTFCT_NM} ip = [${ARTFCT_IP}]"
-echo ">>> ${ANSIBL_NM} ip = [${ANSIBL_IP}]"
-echo ">>> ${WEBAPI_NM} ip = [${WEBAPI_IP}]"
-echo ">>> ${WEBUI_NM} ip = [${WEBUI_IP}]"
+echo ">>> Register github runner"
+TARGET_CONTAINERS="gitlab dep-track-apiserver artifactory ansible webapp-webapi webapp-webui"
+EXTRA_HOSTS_OPTS=""
+
+for CONTAINER_NM in ${TARGET_CONTAINERS}; do
+	if docker inspect ${CONTAINER_NM} > /dev/null 2>&1; then
+		IS_RUNNING=$(docker inspect -f '{{.State.Running}}' ${CONTAINER_NM} 2>/dev/null)
+		if [ "${IS_RUNNING}" = "true" ]; then
+			CONTAINER_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' ${CONTAINER_NM} 2>/dev/null | awk '{print $NF}')
+			if [ -n "${CONTAINER_IP}" ]; then
+				echo ">>> Found ${CONTAINER_NM} ip = [${CONTAINER_IP}] -> Adding to extra-hosts"
+				EXTRA_HOSTS_OPTS="${EXTRA_HOSTS_OPTS} --docker-extra-hosts ${CONTAINER_NM}:${CONTAINER_IP}"
+			else
+				echo ">>> Skipping ${CONTAINER_NM}: IP address is empty."
+			fi
+		else
+			echo ">>> Skipping ${CONTAINER_NM}: Container is NOT running (State: ${IS_RUNNING})"
+		fi
+	else
+		echo ">>> Skipping ${CONTAINER_NM}: Container does not exist"
+	fi
+done
 
 docker exec -it gitlab-runner gitlab-runner register \
   --non-interactive \
@@ -80,12 +88,7 @@ docker exec -it gitlab-runner gitlab-runner register \
   --docker-image "alpine:latest" \
   --description "docker-runner-alpine" \
   --docker-network-mode "host" \
-  --docker-extra-hosts "${GITLAB_NM}:${GITLAB_IP}" \
-  --docker-extra-hosts "${DTRACK_NM}:${DTRACK_IP}" \
-  --docker-extra-hosts "${ARTFCT_NM}:${ARTFCT_IP}" \
-  --docker-extra-hosts "${ANSIBL_NM}:${ANSIBL_IP}" \
-  --docker-extra-hosts "${WEBAPI_NM}:${WEBAPI_IP}" \
-  --docker-extra-hosts "${WEBUI_NM}:${WEBUI_IP}"
+  ${EXTRA_HOSTS_OPTS}
 
 echo ">>> $ docker exec gitlab-runner cat /etc/gitlab-runner/config.toml"
 docker exec gitlab-runner cat /etc/gitlab-runner/config.toml
