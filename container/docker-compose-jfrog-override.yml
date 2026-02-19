@@ -1,6 +1,6 @@
 services:
 
-  postgresql:
+  postgres:
     networks:
       - internal
 
@@ -14,3 +14,11 @@ volumes:
     external: false
   postgres_data:
     external: false
+
+networks:
+  internal:
+    name: intra-net
+    external: true
+  external:
+    name: hands-net
+    external: true
