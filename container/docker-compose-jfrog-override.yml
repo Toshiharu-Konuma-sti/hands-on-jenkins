@@ -1,0 +1,16 @@
+services:
+
+  postgresql:
+    networks:
+      - internal
+
+  artifactory:
+    networks:
+      - internal
+      - external
+
+volumes:
+  artifactory_data:
+    external: false
+  postgres_data:
+    external: false

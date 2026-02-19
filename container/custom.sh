@@ -68,6 +68,11 @@ create_container()
 		-f $CUR_DIR/docker-compose-dtrack-override.yml \
 		-p dtrack \
 		up -d -V
+	docker compose \
+		-f $CUR_DIR/docker-compose-volumes.yaml \
+		-f $CUR_DIR/docker-compose-jfrog-override.yml \
+		-p jfrog \
+		up -d -V
 }
 # }}}
 
@@ -97,6 +102,11 @@ destory_container()
 #		-f $CUR_DIR/docker-compose-dependencytrack.yml \
 #		down -v --remove-orphans
 
+	docker compose \
+		-f $CUR_DIR/docker-compose-volumes.yaml \
+		-f $CUR_DIR/docker-compose-jfrog-override.yml \
+		-p jfrog \
+		down -v
 	docker compose \
 		-f $CUR_DIR/docker-compose-dtrack.yml \
 		-f $CUR_DIR/docker-compose-dtrack-override.yml \
