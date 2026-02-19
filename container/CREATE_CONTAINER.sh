@@ -15,19 +15,19 @@ case "$1" in
 
 		check_required_commands "docker unzip"
 
-		get_dependencytrack_yaml $CUR_DIR $DEPT_YAML_URL $DEPT_YAML_FIL
-		prepare_deptrack_server_name $CUR_DIR $DEPT_YAML_FIL \
+		get_dependencytrack_yaml $CUR_DIR $DEPT_YAML_URL $DTRK_YAML_FIL
+		prepare_deptrack_server_name $CUR_DIR $DTRK_YAML_FIL \
 			$DEPT_APIS_NM_BEF $DEPT_APIS_NM_AFT \
 			$DEPT_FRNT_NM_BEF $DEPT_FRNT_NM_AFT \
 			$DEPT_PSQL_NM_BEF $DEPT_PSQL_NM_AFT
-		prepare_deptrack_port_number $CUR_DIR $DEPT_YAML_FIL \
+		prepare_deptrack_port_number $CUR_DIR $DTRK_YAML_FIL \
 			$DEPT_APIS_PORT_BEF $DEPT_APIS_PORT_AFT \
 			$DEPT_FRNT_PORT_BEF $DEPT_FRNT_PORT_AFT
-		insert_deptrack_container_name $CUR_DIR $DEPT_YAML_FIL \
+		insert_deptrack_container_name $CUR_DIR $DTRK_YAML_FIL \
 			$DEPT_APIS_NM_AFT $DEPT_FRNT_NM_AFT $DEPT_PSQL_NM_AFT
 
 		get_jfrog_oss_package $DWN_DIR $ARTF_PKG_URL $ARTF_PKG_PTN
-		prepare_jfrog_oss_files $CUR_DIR $DWN_DIR $ARTF_DIR_PTN
+		move_jfrog_oss_files $CUR_DIR $DWN_DIR $ARTF_DIR_PTN
 		clean_jfrog_oss_package $DWN_DIR $ARTF_PKG_PTN $ARTF_DIR_PTN
 
 		get_webapp_package $DWN_DIR $WEBAPP_PKG_URL
@@ -51,7 +51,7 @@ case "$1" in
 		finish_banner $S_TIME
 		;;
 	"down")
-		clear
+#		clear
 		start_banner
 		check_required_commands "docker"
 		destory_container $CUR_DIR
@@ -68,7 +68,7 @@ case "$1" in
 		finish_banner $S_TIME
 		;;
 	"list")
-		clear
+#		clear
 		show_list_container
 		;;
 	"info")
@@ -77,33 +77,33 @@ case "$1" in
 		show_information
 		;;
 	"")
-		clear
+#		clear
 		start_banner
 		check_required_commands "docker unzip"
 
 		destory_container $CUR_DIR
 
-		get_dependencytrack_yaml $CUR_DIR $DEPT_YAML_URL $DEPT_YAML_FIL
-		prepare_deptrack_server_name $CUR_DIR $DEPT_YAML_FIL \
-			$DEPT_APIS_NM_BEF $DEPT_APIS_NM_AFT \
-			$DEPT_FRNT_NM_BEF $DEPT_FRNT_NM_AFT \
-			$DEPT_PSQL_NM_BEF $DEPT_PSQL_NM_AFT
-		prepare_deptrack_port_number $CUR_DIR $DEPT_YAML_FIL \
-			$DEPT_APIS_PORT_BEF $DEPT_APIS_PORT_AFT \
-			$DEPT_FRNT_PORT_BEF $DEPT_FRNT_PORT_AFT
-		insert_deptrack_container_name $CUR_DIR $DEPT_YAML_FIL \
-			$DEPT_APIS_NM_AFT $DEPT_FRNT_NM_AFT $DEPT_PSQL_NM_AFT
+#		get_dependencytrack_yaml $CUR_DIR $DEPT_YAML_URL $DTRK_YAML_FIL
+##		prepare_deptrack_server_name $CUR_DIR $DTRK_YAML_FIL \
+##			$DEPT_APIS_NM_BEF $DEPT_APIS_NM_AFT \
+##			$DEPT_FRNT_NM_BEF $DEPT_FRNT_NM_AFT \
+##			$DEPT_PSQL_NM_BEF $DEPT_PSQL_NM_AFT
+#		prepare_deptrack_port_number $CUR_DIR $DTRK_YAML_FIL \
+#			$DEPT_APIS_PORT_BEF $DEPT_APIS_PORT_AFT \
+#			$DEPT_FRNT_PORT_BEF $DEPT_FRNT_PORT_AFT
+##		insert_deptrack_container_name $CUR_DIR $DTRK_YAML_FIL \
+##			$DEPT_APIS_NM_AFT $DEPT_FRNT_NM_AFT $DEPT_PSQL_NM_AFT
 
-		get_jfrog_oss_package $DWN_DIR $ARTF_PKG_URL $ARTF_PKG_PTN
-		prepare_jfrog_oss_files $CUR_DIR $DWN_DIR $ARTF_DIR_PTN
-		clean_jfrog_oss_package $DWN_DIR $ARTF_PKG_PTN $ARTF_DIR_PTN
+#		get_jfrog_oss_package $DWN_DIR $ARTF_PKG_URL $ARTF_PKG_PTN
+#		move_jfrog_oss_files $CUR_DIR $DWN_DIR $ARTF_DIR_PTN
+#		clean_jfrog_oss_package $DWN_DIR $ARTF_PKG_PTN $ARTF_DIR_PTN
 
-		get_webapp_package $DWN_DIR $WEBAPP_PKG_URL
-		prepare_webapp_mysql_files $CUR_DIR $DWN_DIR $WEBAPP_PKG_URL
-		clean_webapp_package $DWN_DIR $WEBAPP_PKG_URL
+##		get_webapp_package $DWN_DIR $WEBAPP_PKG_URL
+##		prepare_webapp_mysql_files $CUR_DIR $DWN_DIR $WEBAPP_PKG_URL
+##		clean_webapp_package $DWN_DIR $WEBAPP_PKG_URL
 
 		create_container $CUR_DIR
-		join_to_network
+##		join_to_network
 
 		show_list_container
 		show_url

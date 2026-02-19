@@ -1,0 +1,31 @@
+services:
+
+  apiserver:
+    container_name: dtrack-apiserver
+    hostname: dtrack-apiserver
+    environment:
+      EXTRA_JAVA_OPTIONS: "-Xmx4G"
+    networks:
+      - internal
+      - external
+
+  frontend:
+    container_name: dtrack-frontend
+    hostname: dtrack-frontend
+    networks:
+      - internal
+      - external
+
+  postgres:
+    container_name: dtrack-postgres
+    hostname: dtrack-postgres
+    networks:
+      - internal
+
+networks:
+  internal:
+    name: intra-net
+    external: true
+  external:
+    name: hands-net
+    external: true

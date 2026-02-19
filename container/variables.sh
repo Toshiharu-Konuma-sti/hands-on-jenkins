@@ -21,7 +21,7 @@ GITL_GRP_PATH="my-hands-on-group"
 GITL_GRP_VISB="public"
 
 DEPT_YAML_URL="https://dependencytrack.org/docker-compose.yml"
-DEPT_YAML_FIL="docker-compose-dependencytrack.yml"
+DTRK_YAML_FIL="docker-compose-dtrack.yml"
 DEPT_APIS_NM_BEF="apiserver"
 DEPT_APIS_NM_AFT="dep-track-apiserver"
 DEPT_FRNT_NM_BEF="frontend"

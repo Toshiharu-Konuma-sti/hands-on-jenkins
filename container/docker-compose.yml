@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
 
   gitlab:
@@ -74,12 +72,3 @@ volumes:
   gitlab-logs:
   gitlab-data:
   gitlab-runner-config:
-
-networks:
-  internal:
-    name: intra-net
-    driver: bridge
-    internal: true
-  external:
-    name: hands-net
-    driver: bridge

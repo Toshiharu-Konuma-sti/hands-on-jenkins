@@ -3,7 +3,7 @@
 container/.env
 container/.env-webapp-mysql
 container/docker-compose-volumes.yaml
-container/docker-compose-dependencytrack.yml
+container/docker-compose-dtrack.yml
 container/mysql/
 
 download/jenkins-cli.jar

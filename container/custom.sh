@@ -47,16 +47,27 @@ create_container()
 {
 	CUR_DIR=$1
 	echo "\n### START: Create new containers ##########"
-	docker volume create --name=artifactory_data
-	docker volume create --name=postgres_data
-	docker volume create --name=dtrack-data
-	docker volume create --name=postgres-data
-	docker-compose \
+#	docker volume create --name=artifactory_data
+#	docker volume create --name=postgres_data
+#	docker volume create --name=dtrack-data
+#	docker volume create --name=postgres-data
+#	docker-compose \
+#		-f $CUR_DIR/docker-compose.yml \
+#		-f $CUR_DIR/docker-compose-webapp.yml \
+#		-f $CUR_DIR/docker-compose-volumes.yaml \
+#		-f $CUR_DIR/docker-compose-dependencytrack.yml \
+#		up -d -V --remove-orphans
+
+	docker compose \
 		-f $CUR_DIR/docker-compose.yml \
-		-f $CUR_DIR/docker-compose-webapp.yml \
-		-f $CUR_DIR/docker-compose-volumes.yaml \
-		-f $CUR_DIR/docker-compose-dependencytrack.yml \
+		-f $CUR_DIR/docker-compose.common.network.yml \
+		-p devops \
 		up -d -V --remove-orphans
+	docker compose \
+		-f $CUR_DIR/docker-compose-dtrack.yml \
+		-f $CUR_DIR/docker-compose-dtrack-override.yml \
+		-p dtrack \
+		up -d -V
 }
 # }}}
 
@@ -79,16 +90,28 @@ destory_container()
 {
 	CUR_DIR=$1
 	echo "\n### START: Destory existing containers ##########"
-	docker-compose \
+#	docker-compose \
+#		-f $CUR_DIR/docker-compose.yml \
+#		-f $CUR_DIR/docker-compose-webapp.yml \
+#		-f $CUR_DIR/docker-compose-volumes.yaml \
+#		-f $CUR_DIR/docker-compose-dependencytrack.yml \
+#		down -v --remove-orphans
+
+	docker compose \
+		-f $CUR_DIR/docker-compose-dtrack.yml \
+		-f $CUR_DIR/docker-compose-dtrack-override.yml \
+		-p dtrack \
+		down -v
+	docker compose \
 		-f $CUR_DIR/docker-compose.yml \
-		-f $CUR_DIR/docker-compose-webapp.yml \
-		-f $CUR_DIR/docker-compose-volumes.yaml \
-		-f $CUR_DIR/docker-compose-dependencytrack.yml \
+		-f $CUR_DIR/docker-compose.common.network.yml \
+		-p devops \
 		down -v --remove-orphans
-	docker volume rm artifactory_data
-	docker volume rm postgres_data
-	docker volume rm dtrack-data
-	docker volume rm postgres-data
+
+#	docker volume rm artifactory_data
+#	docker volume rm postgres_data
+#	docker volume rm dtrack-data
+#	docker volume rm postgres-data
 }
 # }}}
 
@@ -206,7 +229,8 @@ prepare_deptrack_port_number()
 	echo "### START: Replace the port number exposed to the hosts in Dependency-Track's docker-compose YAML"
 
 	sed -i.bak \
-		-e "s/${APIS_BEF}/${APIS_AFT}/g" \
+		-e "s/:${APIS_BEF}/:${APIS_AFT}/g" \
+		-e "s/${APIS_BEF}:/${APIS_AFT}:/g" \
 		-e "s/${FRNT_BEF}:/${FRNT_AFT}:/g" "${CUR_DIR}/${YAML_FIL}"
 	rm -f "${CUR_DIR}/${YAML_FIL}.bak"
 }
@@ -251,11 +275,11 @@ get_jfrog_oss_package()
 }
 # }}}
 
-# {{{ prepare_jfrog_oss_files()
+# {{{ move_jfrog_oss_files()
 # $1: the current directory
 # $2: the download directory
 # $3: the artifactory directory pattern
-prepare_jfrog_oss_files()
+move_jfrog_oss_files()
 {
 	CUR_DIR=$1
 	DWN_DIR=$2
