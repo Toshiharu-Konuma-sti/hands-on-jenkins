@@ -60,6 +60,7 @@ create_container()
 
 	docker compose \
 		-f $CUR_DIR/docker-compose.yml \
+		-f $CUR_DIR/docker-compose-webapp.yml \
 		-f $CUR_DIR/docker-compose.common.network.yml \
 		-p devops \
 		up -d -V --remove-orphans
@@ -114,6 +115,7 @@ destory_container()
 		down -v
 	docker compose \
 		-f $CUR_DIR/docker-compose.yml \
+		-f $CUR_DIR/docker-compose-webapp.yml \
 		-f $CUR_DIR/docker-compose.common.network.yml \
 		-p devops \
 		down -v --remove-orphans
