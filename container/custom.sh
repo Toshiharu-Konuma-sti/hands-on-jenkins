@@ -157,7 +157,8 @@ rebuild_container()
 	docker-compose \
 		-f $CUR_DIR/docker-compose.yml \
 		-f $CUR_DIR/docker-compose-webapp.yml \
-		-f $CUR_DIR/docker-compose-volumes.yaml \
+		-f $CUR_DIR/docker-compose.common.network.yml \
+		-p devops \
 		up -d -V --build $CONTAINER_NM
 }
 # }}}
