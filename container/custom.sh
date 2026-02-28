@@ -148,12 +148,12 @@ rebuild_container()
 }
 # }}}
 
-# {{{ clear_ssh_known_hosts()
+# {{{ clear_ssh_known_hosts_on_ssh_client()
 # If a container is recreated (rebuild), it can not connect by SSH to a
 # recreated container because the SSH public key will change, so clear the SSH
 # public key registered in known_hosts.
 # The connecting by SSH is mainly used on Ansible.
-clear_ssh_known_hosts()
+clear_ssh_known_hosts_on_ssh_client()
 {
 	echo "\n### START: Clear the know_hosts file for ssh ##########"
 	docker exec ansible sh -c '[ -f ~/.ssh/known_hosts ] && > ~/.ssh/known_hosts'

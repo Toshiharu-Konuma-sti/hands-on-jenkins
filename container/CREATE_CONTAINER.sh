@@ -50,7 +50,7 @@ case "$1" in
 		finish_banner $S_TIME
 		;;
 	"down")
-#		clear
+		clear
 		start_banner
 		check_required_commands "docker"
 		destory_container $CUR_DIR
@@ -58,16 +58,16 @@ case "$1" in
 		finish_banner $S_TIME
 		;;
 	"rebuild")
-#		clear
+		clear
 		start_banner
 		check_required_commands "docker"
 		rebuild_container $CUR_DIR $2
-		clear_ssh_known_hosts
+		clear_ssh_known_hosts_on_ssh_client
 		show_list_container
 		finish_banner $S_TIME
 		;;
 	"list")
-#		clear
+		clear
 		show_list_container
 		;;
 	"info")
@@ -76,7 +76,7 @@ case "$1" in
 		show_information
 		;;
 	"")
-#		clear
+		clear
 		start_banner
 		check_required_commands "docker unzip"
 
