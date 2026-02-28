@@ -62,7 +62,7 @@ def testResultsProps = &quot;&quot;
 
 pipeline{
     agent{
-        label &quot;build-agent&quot;
+        label &quot;jenkins-agent&quot;
     }
     tools {
         jfrog &quot;my-jfrog-cli&quot;

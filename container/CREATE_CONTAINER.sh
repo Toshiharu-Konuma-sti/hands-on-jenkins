@@ -1,5 +1,25 @@
 #!/bin/sh
 
+# {{{ The_Steps_Of_Creating_Containers()
+The_Steps_Of_Creating_Containers()
+{
+	get_dependencytrack_yaml $CUR_DIR $DTRK_YAML_URL $DTRK_YAML_FIL
+	replace_dtrack_port_number $CUR_DIR $DTRK_YAML_FIL \
+		$DTRK_APIS_PORT_BEF $DTRK_APIS_PORT_AFT \
+		$DTRK_FRNT_PORT_BEF $DTRK_FRNT_PORT_AFT
+
+	get_jfrog_oss_package $DWN_DIR $ARTF_PKG_URL $ARTF_PKG_PTN
+	move_jfrog_oss_files $CUR_DIR $DWN_DIR $ARTF_DIR_PTN
+	clean_jfrog_oss_package $DWN_DIR $ARTF_PKG_PTN $ARTF_DIR_PTN
+
+	get_webapp_package $DWN_DIR $WEBAPP_PKG_URL
+	move_webapp_mysql_files $CUR_DIR $DWN_DIR $WEBAPP_PKG_URL
+	clean_webapp_package $DWN_DIR $WEBAPP_PKG_URL
+
+	create_container $CUR_DIR
+}
+# }}}
+
 S_TIME=$(date +%s)
 CUR_DIR=$(cd $(dirname $0); pwd)
 . $CUR_DIR/common.sh
@@ -12,30 +32,9 @@ case "$1" in
 	"up")
 		clear
 		start_banner
-
 		check_required_commands "docker unzip"
 
-		get_dependencytrack_yaml $CUR_DIR $DEPT_YAML_URL $DTRK_YAML_FIL
-		prepare_deptrack_server_name $CUR_DIR $DTRK_YAML_FIL \
-			$DEPT_APIS_NM_BEF $DEPT_APIS_NM_AFT \
-			$DEPT_FRNT_NM_BEF $DEPT_FRNT_NM_AFT \
-			$DEPT_PSQL_NM_BEF $DEPT_PSQL_NM_AFT
-		prepare_deptrack_port_number $CUR_DIR $DTRK_YAML_FIL \
-			$DEPT_APIS_PORT_BEF $DEPT_APIS_PORT_AFT \
-			$DEPT_FRNT_PORT_BEF $DEPT_FRNT_PORT_AFT
-		insert_deptrack_container_name $CUR_DIR $DTRK_YAML_FIL \
-			$DEPT_APIS_NM_AFT $DEPT_FRNT_NM_AFT $DEPT_PSQL_NM_AFT
-
-		get_jfrog_oss_package $DWN_DIR $ARTF_PKG_URL $ARTF_PKG_PTN
-		move_jfrog_oss_files $CUR_DIR $DWN_DIR $ARTF_DIR_PTN
-		clean_jfrog_oss_package $DWN_DIR $ARTF_PKG_PTN $ARTF_DIR_PTN
-
-		get_webapp_package $DWN_DIR $WEBAPP_PKG_URL
-		prepare_webapp_mysql_files $CUR_DIR $DWN_DIR $WEBAPP_PKG_URL
-		clean_webapp_package $DWN_DIR $WEBAPP_PKG_URL
-
-		create_container $CUR_DIR
-		join_to_network
+		The_Steps_Of_Creating_Containers
 
 		show_list_container
 		show_url
@@ -83,27 +82,7 @@ case "$1" in
 
 		destory_container $CUR_DIR
 
-		get_dependencytrack_yaml $CUR_DIR $DEPT_YAML_URL $DTRK_YAML_FIL
-##		prepare_deptrack_server_name $CUR_DIR $DTRK_YAML_FIL \
-##			$DEPT_APIS_NM_BEF $DEPT_APIS_NM_AFT \
-##			$DEPT_FRNT_NM_BEF $DEPT_FRNT_NM_AFT \
-##			$DEPT_PSQL_NM_BEF $DEPT_PSQL_NM_AFT
-		prepare_deptrack_port_number $CUR_DIR $DTRK_YAML_FIL \
-			$DEPT_APIS_PORT_BEF $DEPT_APIS_PORT_AFT \
-			$DEPT_FRNT_PORT_BEF $DEPT_FRNT_PORT_AFT
-##		insert_deptrack_container_name $CUR_DIR $DTRK_YAML_FIL \
-##			$DEPT_APIS_NM_AFT $DEPT_FRNT_NM_AFT $DEPT_PSQL_NM_AFT
-
-		get_jfrog_oss_package $DWN_DIR $ARTF_PKG_URL $ARTF_PKG_PTN
-		move_jfrog_oss_files $CUR_DIR $DWN_DIR $ARTF_DIR_PTN
-		clean_jfrog_oss_package $DWN_DIR $ARTF_PKG_PTN $ARTF_DIR_PTN
-
-		get_webapp_package $DWN_DIR $WEBAPP_PKG_URL
-		prepare_webapp_mysql_files $CUR_DIR $DWN_DIR $WEBAPP_PKG_URL
-		clean_webapp_package $DWN_DIR $WEBAPP_PKG_URL
-
-		create_container $CUR_DIR
-##		join_to_network
+		The_Steps_Of_Creating_Containers
 
 		show_list_container
 		show_url

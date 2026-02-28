@@ -19,7 +19,7 @@ ENTRYPOINT ["/usr/sbin/sshd", "-D"]
 # ===============================================
 #  for jenkins build agent
 # ===============================================
-FROM base AS build-agent-node
+FROM base AS jenkins-agent-node
 RUN apt-get update && \
     apt-get install -y openjdk-21-jdk-headless && \
     apt-get install -y git curl docker.io && \

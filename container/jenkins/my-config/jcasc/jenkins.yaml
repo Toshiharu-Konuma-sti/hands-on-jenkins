@@ -9,15 +9,15 @@ jenkins:
 
   nodes:
     - permanent:
-        name: "build-node"
+        name: "jenkins-agent-node"
         remoteFS: "/root"
         numExecutors: 1
-        labelString: "build-agent"
+        labelString: "jenkins-agent"
         launcher:
           ssh:
-            host: "build-agent"
+            host: "jenkins-agent"
             port: "22"
-            credentialsId: "build-node-credential"
+            credentialsId: "jenkins-agent-node-credential"
             sshHostKeyVerificationStrategy: "nonVerifyingKeyVerificationStrategy"
     - permanent:
         name: "ansible-node"
@@ -60,7 +60,7 @@ credentials:
     domainCredentials:
       - credentials:
           - usernamePassword:
-              id: "build-node-credential"
+              id: "jenkins-agent-node-credential"
               scope: GLOBAL
               username: "root"
               password: "password"

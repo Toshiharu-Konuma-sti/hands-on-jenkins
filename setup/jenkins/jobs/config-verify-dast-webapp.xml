@@ -21,7 +21,7 @@
   <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">
     <script>pipeline{
     agent{
-        label &quot;build-agent&quot;
+        label &quot;jenkins-agent&quot;
     }
     tools {
         jfrog &quot;my-jfrog-cli&quot;
@@ -42,14 +42,14 @@
         WEBAPP_PID_API = &quot;webapp-webapi.pid&quot;
         WEBAPP_LOG_API = &quot;webapp-webapi.log&quot;
         HEALTH_CHECK_URL_API = &quot;http://localhost:8182/actuator/health&quot;
-        ZAP_TARGET_URL_API = &quot;http://build-agent:8182&quot;
+        ZAP_TARGET_URL_API = &quot;http://jenkins-agent:8182&quot;
         ZAP_REPORT_NAME_API = &quot;zap-api-scan-report-api.html&quot;
 
         JAR_FILE_PATTERN_UI = &quot;webui/build/libs/apisl.handson.rollingdice.webapp.webui-*-SNAPSHOT.jar&quot;
         WEBAPP_PID_UI = &quot;webapp-webui.pid&quot;
         WEBAPP_LOG_UI = &quot;webapp-webui.log&quot;
         HEALTH_CHECK_URL_UI = &quot;http://localhost:8181/actuator/health&quot;
-        ZAP_TARGET_URL_UI = &quot;http://build-agent:8181&quot;
+        ZAP_TARGET_URL_UI = &quot;http://jenkins-agent:8181&quot;
         ZAP_REPORT_NAME_UI = &quot;zap-baseline-report-ui.html&quot;
         
         TIMEOUT_EXP = 2

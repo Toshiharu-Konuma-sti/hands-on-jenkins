@@ -50,13 +50,13 @@ services:
       - external
     restart: unless-stopped
 
-  build-agent:
-    container_name: build-agent
-    hostname: build-agent
+  jenkins-agent:
+    container_name: jenkins-agent
+    hostname: jenkins-agent
     build:
       context: ./cicd
-      target: build-agent-node
-    image: hands-on/jenkins/ubuntu/cicd/build-agent:latest
+      target: jenkins-agent-node
+    image: hands-on/jenkins/ubuntu/cicd/jenkins-agent:latest
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
