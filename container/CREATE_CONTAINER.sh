@@ -98,9 +98,9 @@ case "$1" in
 		move_jfrog_oss_files $CUR_DIR $DWN_DIR $ARTF_DIR_PTN
 		clean_jfrog_oss_package $DWN_DIR $ARTF_PKG_PTN $ARTF_DIR_PTN
 
-##		get_webapp_package $DWN_DIR $WEBAPP_PKG_URL
-##		prepare_webapp_mysql_files $CUR_DIR $DWN_DIR $WEBAPP_PKG_URL
-##		clean_webapp_package $DWN_DIR $WEBAPP_PKG_URL
+		get_webapp_package $DWN_DIR $WEBAPP_PKG_URL
+		prepare_webapp_mysql_files $CUR_DIR $DWN_DIR $WEBAPP_PKG_URL
+		clean_webapp_package $DWN_DIR $WEBAPP_PKG_URL
 
 		create_container $CUR_DIR
 ##		join_to_network

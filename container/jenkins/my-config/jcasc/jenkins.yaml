@@ -4,9 +4,21 @@
 jenkins:
   systemMessage: "This Jenkins instance is managed with JCasC. If you want to change settings, you should modify the configuration."
 
+  numExecutors: 0
   labelString: "master" # the Built-in node's label
 
   nodes:
+    - permanent:
+        name: "build-node"
+        remoteFS: "/root"
+        numExecutors: 1
+        labelString: "build-agent"
+        launcher:
+          ssh:
+            host: "build-agent"
+            port: "22"
+            credentialsId: "build-node-credential"
+            sshHostKeyVerificationStrategy: "nonVerifyingKeyVerificationStrategy"
     - permanent:
         name: "ansible-node"
         remoteFS: "/root"
@@ -47,6 +59,11 @@ credentials:
   system:
     domainCredentials:
       - credentials:
+          - usernamePassword:
+              id: "build-node-credential"
+              scope: GLOBAL
+              username: "root"
+              password: "password"
           - usernamePassword:
               id: "ansible-node-credential"
               scope: GLOBAL

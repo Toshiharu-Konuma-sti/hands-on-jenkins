@@ -1,16 +1,16 @@
 
-x-image-cicd-target: &cicdTargetImage
+x-image-cicd-webapp: &cicdWebappImage
   build:
     context: ./cicd
-    dockerfile: Dockerfile-target
-  image: hands-on/jenkins/ubuntu/cicd/target:latest
+    target: webapp-node
 
 services:
 
   webapp-webui:
     container_name: webapp-webui
     hostname: webapp-webui
-    <<: *cicdTargetImage
+    <<: *cicdWebappImage
+    image: hands-on/jenkins/ubuntu/cicd/webapp-webui:latest
     ports:
       - 8181:8181
     networks:
@@ -21,7 +21,8 @@ services:
   webapp-webapi:
     container_name: webapp-webapi
     hostname: webapp-webapi
-    <<: *cicdTargetImage
+    <<: *cicdWebappImage
+    image: hands-on/jenkins/ubuntu/cicd/webapp-webapi:latest
     ports:
       - 8182:8182
     networks:
