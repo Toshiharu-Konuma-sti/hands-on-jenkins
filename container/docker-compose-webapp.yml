@@ -1,41 +1,39 @@
-version: '3.8'
 
-x-image-cicd-target: &cicdTargetImage
+x-image-cicd-webapp: &cicdWebappImage
   build:
     context: ./cicd
-    dockerfile: Dockerfile-target
-  image: hands-on/jenkins/ubuntu/cicd/target:latest
+    target: webapp-node
 
 services:
 
   webapp-webui:
     container_name: webapp-webui
     hostname: webapp-webui
-    <<: *cicdTargetImage
+    <<: *cicdWebappImage
+    image: hands-on/jenkins/ubuntu/cicd/webapp-webui:latest
     ports:
       - 8181:8181
     networks:
       - internal
       - external
-    tty: true
     restart: unless-stopped
 
   webapp-webapi:
     container_name: webapp-webapi
     hostname: webapp-webapi
-    <<: *cicdTargetImage
+    <<: *cicdWebappImage
+    image: hands-on/jenkins/ubuntu/cicd/webapp-webapi:latest
     ports:
       - 8182:8182
     networks:
       - internal
       - external
-    tty: true
     restart: unless-stopped
 
   webapp-mysql:
     hostname: webapp-mysql
     container_name: webapp-mysql
-    image: mysql:8.0
+    image: mysql:8.4.8
     ports:
       - 3306:3306
     networks:
@@ -44,16 +42,12 @@ services:
     volumes:
       - ./mysql/config/my.cnf:/etc/mysql/conf.d/my.cnf
       - ./mysql/init:/docker-entrypoint-initdb.d
-    command: mysqld
     env_file:
       - .env-webapp-mysql
+    command: mysqld
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     restart: unless-stopped
-
-networks:
-  internal:
-    name: intra-net
-    driver: bridge
-    internal: true
-  external:
-    name: hands-net
-    driver: bridge

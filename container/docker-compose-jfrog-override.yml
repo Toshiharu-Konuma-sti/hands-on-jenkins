@@ -1,0 +1,24 @@
+services:
+
+  postgres:
+    networks:
+      - internal
+
+  artifactory:
+    networks:
+      - internal
+      - external
+
+volumes:
+  artifactory_data:
+    external: false
+  postgres_data:
+    external: false
+
+networks:
+  internal:
+    name: intra-net
+    external: true
+  external:
+    name: hands-net
+    external: true

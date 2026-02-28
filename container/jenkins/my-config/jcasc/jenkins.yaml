@@ -4,9 +4,21 @@
 jenkins:
   systemMessage: "This Jenkins instance is managed with JCasC. If you want to change settings, you should modify the configuration."
 
+  numExecutors: 0
   labelString: "master" # the Built-in node's label
 
   nodes:
+    - permanent:
+        name: "jenkins-agent-node"
+        remoteFS: "/root"
+        numExecutors: 1
+        labelString: "jenkins-agent"
+        launcher:
+          ssh:
+            host: "jenkins-agent"
+            port: "22"
+            credentialsId: "jenkins-agent-node-credential"
+            sshHostKeyVerificationStrategy: "nonVerifyingKeyVerificationStrategy"
     - permanent:
         name: "ansible-node"
         remoteFS: "/root"
@@ -48,6 +60,11 @@ credentials:
     domainCredentials:
       - credentials:
           - usernamePassword:
+              id: "jenkins-agent-node-credential"
+              scope: GLOBAL
+              username: "root"
+              password: "password"
+          - usernamePassword:
               id: "ansible-node-credential"
               scope: GLOBAL
               username: "root"
@@ -66,7 +83,7 @@ unclassified:
   resourceRoot:
     url: "http://127.0.0.1:8080/"
   dependencyTrackPublisher:
-    dependencyTrackUrl: "http://dep-track-apiserver:8080"
+    dependencyTrackUrl: "http://dtrack-apiserver:8080"
     dependencyTrackApiKey: "dependency-track-api-key"
     dependencyTrackAutoCreateProjects: true
     dependencyTrackFrontendUrl: "http://localhost:8980"

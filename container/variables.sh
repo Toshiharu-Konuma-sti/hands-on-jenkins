@@ -20,18 +20,12 @@ GITL_GRP_NAME="My Hands-on Group"
 GITL_GRP_PATH="my-hands-on-group"
 GITL_GRP_VISB="public"
 
-DEPT_YAML_URL="https://dependencytrack.org/docker-compose.yml"
-DEPT_YAML_FIL="docker-compose-dependencytrack.yml"
-DEPT_APIS_NM_BEF="apiserver"
-DEPT_APIS_NM_AFT="dep-track-apiserver"
-DEPT_FRNT_NM_BEF="frontend"
-DEPT_FRNT_NM_AFT="dep-track-frontend"
-DEPT_PSQL_NM_BEF="postgres"
-DEPT_PSQL_NM_AFT="dep-track-postgres"
-DEPT_APIS_PORT_BEF=8081
-DEPT_APIS_PORT_AFT=8981
-DEPT_FRNT_PORT_BEF=8080
-DEPT_FRNT_PORT_AFT=8980
+DTRK_YAML_URL="https://dependencytrack.org/docker-compose.yml"
+DTRK_YAML_FIL="docker-compose-dtrack.yml"
+DTRK_APIS_PORT_BEF=8081
+DTRK_APIS_PORT_AFT=8981
+DTRK_FRNT_PORT_BEF=8080
+DTRK_FRNT_PORT_AFT=8980
 
 ANSIBLE_HOST="ansible"
 ANSIBLE_USER="root"

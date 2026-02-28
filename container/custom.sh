@@ -47,16 +47,33 @@ create_container()
 {
 	CUR_DIR=$1
 	echo "\n### START: Create new containers ##########"
-	docker volume create --name=artifactory_data
-	docker volume create --name=postgres_data
-	docker volume create --name=dtrack-data
-	docker volume create --name=postgres-data
-	docker-compose \
+#	docker volume create --name=artifactory_data
+#	docker volume create --name=postgres_data
+#	docker volume create --name=dtrack-data
+#	docker volume create --name=postgres-data
+#	docker-compose \
+#		-f $CUR_DIR/docker-compose.yml \
+#		-f $CUR_DIR/docker-compose-webapp.yml \
+#		-f $CUR_DIR/docker-compose-volumes.yaml \
+#		-f $CUR_DIR/docker-compose-dependencytrack.yml \
+#		up -d -V --remove-orphans
+
+	docker compose \
 		-f $CUR_DIR/docker-compose.yml \
 		-f $CUR_DIR/docker-compose-webapp.yml \
-		-f $CUR_DIR/docker-compose-volumes.yaml \
-		-f $CUR_DIR/docker-compose-dependencytrack.yml \
+		-f $CUR_DIR/docker-compose.common.network.yml \
+		-p devops \
 		up -d -V --remove-orphans
+	docker compose \
+		-f $CUR_DIR/docker-compose-dtrack.yml \
+		-f $CUR_DIR/docker-compose-dtrack-override.yml \
+		-p dtrack \
+		up -d -V
+	docker compose \
+		-f $CUR_DIR/docker-compose-volumes.yaml \
+		-f $CUR_DIR/docker-compose-jfrog-override.yml \
+		-p jfrog \
+		up -d -V
 }
 # }}}
 
@@ -79,31 +96,34 @@ destory_container()
 {
 	CUR_DIR=$1
 	echo "\n### START: Destory existing containers ##########"
-	docker-compose \
+#	docker-compose \
+#		-f $CUR_DIR/docker-compose.yml \
+#		-f $CUR_DIR/docker-compose-webapp.yml \
+#		-f $CUR_DIR/docker-compose-volumes.yaml \
+#		-f $CUR_DIR/docker-compose-dependencytrack.yml \
+#		down -v --remove-orphans
+
+	docker compose \
+		-f $CUR_DIR/docker-compose-volumes.yaml \
+		-f $CUR_DIR/docker-compose-jfrog-override.yml \
+		-p jfrog \
+		down -v
+	docker compose \
+		-f $CUR_DIR/docker-compose-dtrack.yml \
+		-f $CUR_DIR/docker-compose-dtrack-override.yml \
+		-p dtrack \
+		down -v
+	docker compose \
 		-f $CUR_DIR/docker-compose.yml \
 		-f $CUR_DIR/docker-compose-webapp.yml \
-		-f $CUR_DIR/docker-compose-volumes.yaml \
-		-f $CUR_DIR/docker-compose-dependencytrack.yml \
+		-f $CUR_DIR/docker-compose.common.network.yml \
+		-p devops \
 		down -v --remove-orphans
-	docker volume rm artifactory_data
-	docker volume rm postgres_data
-	docker volume rm dtrack-data
-	docker volume rm postgres-data
-}
-# }}}
 
-# {{{ join_to_network()
-join_to_network()
-{
-	echo "\n### START: Join to the network ##########"
-	docker network connect hands-net artifactory
-	docker network connect intra-net artifactory
-	docker network connect intra-net postgresql
-	docker network connect hands-net dep-track-apiserver
-	docker network connect hands-net dep-track-frontend
-	docker network connect intra-net dep-track-apiserver
-	docker network connect intra-net dep-track-frontend
-	docker network connect intra-net dep-track-postgres
+#	docker volume rm artifactory_data
+#	docker volume rm postgres_data
+#	docker volume rm dtrack-data
+#	docker volume rm postgres-data
 }
 # }}}
 
@@ -122,17 +142,18 @@ rebuild_container()
 	docker-compose \
 		-f $CUR_DIR/docker-compose.yml \
 		-f $CUR_DIR/docker-compose-webapp.yml \
-		-f $CUR_DIR/docker-compose-volumes.yaml \
+		-f $CUR_DIR/docker-compose.common.network.yml \
+		-p devops \
 		up -d -V --build $CONTAINER_NM
 }
 # }}}
 
-# {{{ clear_ssh_known_hosts()
+# {{{ clear_ssh_known_hosts_on_ssh_client()
 # If a container is recreated (rebuild), it can not connect by SSH to a
 # recreated container because the SSH public key will change, so clear the SSH
 # public key registered in known_hosts.
 # The connecting by SSH is mainly used on Ansible.
-clear_ssh_known_hosts()
+clear_ssh_known_hosts_on_ssh_client()
 {
 	echo "\n### START: Clear the know_hosts file for ssh ##########"
 	docker exec ansible sh -c '[ -f ~/.ssh/known_hosts ] && > ~/.ssh/known_hosts'
@@ -154,48 +175,14 @@ get_dependencytrack_yaml()
 }
 # }}}
 
-# {{{ prepare_deptrack_server_name()
-# $1: the current directory
-# $2: the docker compose file name for dependency-track
-# $3: api container name before change
-# $4: api container name after change
-# $5: frontend container name before change
-# $6: frontend container name after change
-# $7: postgresql container name before change
-# $8: postgersql container name after change
-prepare_deptrack_server_name()
-{
-	CUR_DIR=$1
-	YAML_FIL=$2
-	APIS_BEF=$3
-	APIS_AFT=$4
-	FRNT_BEF=$5
-	FRNT_AFT=$6
-	PSQL_BEF=$7
-	PSQL_AFT=$8
-	echo "### START: Replace container names in Dependency-Track's docker-compose YAML"
-
-	# api server and frontend
-	sed -i.bak \
-		-e "s/^\([[:space:]]*\)${APIS_BEF}:/\1${APIS_AFT}:/" \
-		-e "s/^\([[:space:]]*\)${FRNT_BEF}:/\1${FRNT_AFT}:/" "${CUR_DIR}/${YAML_FIL}"
-	# postgresql
-	sed -i.bak \
-		-e "s/^\([[:space:]]*\)${PSQL_BEF}:/\1${PSQL_AFT}:/" \
-		-e "s|//${PSQL_BEF}:|//${PSQL_AFT}:|" "${CUR_DIR}/${YAML_FIL}"
-	# remove a back up file
-	rm -f "${CUR_DIR}/${YAML_FIL}.bak"
-}
-# }}}
-
-# {{{ prepare_deptrack_port_number()
+# {{{ replace_dtrack_port_number()
 # $1: the current directory
 # $2: the docker compose file name for dependency-track
 # $3: api port number before change
 # $4: api port number after change
 # $5: frontend port number before change
 # $6: frontend port number after change
-prepare_deptrack_port_number()
+replace_dtrack_port_number()
 {
 	CUR_DIR=$1
 	YAML_FIL=$2
@@ -206,30 +193,9 @@ prepare_deptrack_port_number()
 	echo "### START: Replace the port number exposed to the hosts in Dependency-Track's docker-compose YAML"
 
 	sed -i.bak \
-		-e "s/${APIS_BEF}/${APIS_AFT}/g" \
+		-e "s/:${APIS_BEF}/:${APIS_AFT}/g" \
+		-e "s/${APIS_BEF}:/${APIS_AFT}:/g" \
 		-e "s/${FRNT_BEF}:/${FRNT_AFT}:/g" "${CUR_DIR}/${YAML_FIL}"
-	rm -f "${CUR_DIR}/${YAML_FIL}.bak"
-}
-# }}}
-
-# {{{ insert_deptrack_container_name()
-# $1: the current directory
-# $2: the docker compose file name for dependency-track
-# $3: api container name after change
-# $4: frontend container name after change
-# $5: postgersql container name after change
-insert_deptrack_container_name()
-{
-	CUR_DIR=$1
-	YAML_FIL=$2
-	APIS_AFT=$3
-	FRNT_AFT=$4
-	PSQL_AFT=$5
-	echo "### START: Insert the container name in Dependency-Track's docker-compose YAML"
-
-	sed -i.bak "s/^  ${APIS_AFT}:/  ${APIS_AFT}:\n    container_name: ${APIS_AFT}/" "${CUR_DIR}/${YAML_FIL}"
-	sed -i.bak "s/^  ${FRNT_AFT}:/  ${FRNT_AFT}:\n    container_name: ${FRNT_AFT}/" "${CUR_DIR}/${YAML_FIL}"
-	sed -i.bak "s/^  ${PSQL_AFT}:/  ${PSQL_AFT}:\n    container_name: ${PSQL_AFT}/" "${CUR_DIR}/${YAML_FIL}"
 	rm -f "${CUR_DIR}/${YAML_FIL}.bak"
 }
 # }}}
@@ -251,16 +217,16 @@ get_jfrog_oss_package()
 }
 # }}}
 
-# {{{ prepare_jfrog_oss_files()
+# {{{ move_jfrog_oss_files()
 # $1: the current directory
 # $2: the download directory
 # $3: the artifactory directory pattern
-prepare_jfrog_oss_files()
+move_jfrog_oss_files()
 {
 	CUR_DIR=$1
 	DWN_DIR=$2
 	DIR_PTN=$3
-	echo "\n### START: Prepare JFrog OSS files ##########"
+	echo "\n### START: Move JFrog OSS files ##########"
 	cp -f $DWN_DIR/$DIR_PTN/templates/docker-compose-volumes.yaml $CUR_DIR
 	cp -f $DWN_DIR/$DIR_PTN/.env $CUR_DIR
 
@@ -311,17 +277,17 @@ get_webapp_package()
 }
 # }}}
 
-# {{{ prepare_webapp_mysql_files()
+# {{{ move_webapp_mysql_files()
 # $1: the current directory
 # $2: the download directory
 # $3: the webapp package url
-prepare_webapp_mysql_files()
+move_webapp_mysql_files()
 {
 	CUR_DIR=$1
 	DWN_DIR=$2
 	PKG_URL="$3"
 
-	echo "\n### START: Prepare webapp MySQL files ##########"
+	echo "\n### START: Move webapp MySQL files ##########"
 	GIT_REPO=$(echo ${PKG_URL} | cut -d '/' -f 5)
 	GIT_BRANCH=$(basename ${PKG_URL} | sed 's/\.[^.]*$//')
 
