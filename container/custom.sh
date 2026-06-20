@@ -430,7 +430,7 @@ show_information()
 	echo "  7. Create a remote repository and a virtual repository that links local and remote: \e[4mmaven-central-remote\e[m and \e[4mgradle-virtual\e[m"
 	echo "  8. Run the setup script in the console: \e[4msetup/SETUP_HANDS-ON.sh\e[m"
 	echo "- CI/CD Instructions:"
-	echo "  1. Run the script in the console. It will clone GitLab repository and add the webapp codes: \e[4mtry-my-hand/PREPARE_CODING.sh\e[m"
+	echo "  1. Run the script in the console. It will clone GitLab repository and add the webapp codes: \e[4mtry-my-hand/PREPARE_LOCAL_GIT_REPO_TO_PUSH.sh\e[m"
 	echo "  2. Push a local repository including webapp codes to GitLab."
 	echo "  3. Go to GitLab and merge the branch in the repository."
 	echo "  4. Go to Jenkins and check that the job has started."
