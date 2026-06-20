@@ -193,9 +193,14 @@ replace_dtrack_port_number()
 	echo "### START: Replace the port number exposed to the hosts in Dependency-Track's docker-compose YAML"
 
 	sed -i.bak \
-		-e "s/:${APIS_BEF}/:${APIS_AFT}/g" \
-		-e "s/${APIS_BEF}:/${APIS_AFT}:/g" \
-		-e "s/${FRNT_BEF}:/${FRNT_AFT}:/g" "${CUR_DIR}/${YAML_FIL}"
+		-e "s/:${APIS_BEF}:8080/:${APIS_AFT}:8080/g" \
+		-e "s/\"${APIS_BEF}:8080/\"${APIS_AFT}:8080/g" \
+		-e "s/localhost:${APIS_BEF}/localhost:${APIS_AFT}/g" \
+		-e "s/:${FRNT_BEF}:8080/:${FRNT_AFT}:8080/g" \
+		-e "s/\"${FRNT_BEF}:8080/\"${FRNT_AFT}:8080/g" \
+		-e "s/localhost:${FRNT_BEF}/localhost:${FRNT_AFT}/g" \
+		"${CUR_DIR}/${YAML_FIL}"
+
 	rm -f "${CUR_DIR}/${YAML_FIL}.bak"
 }
 # }}}
@@ -373,7 +378,7 @@ show_url()
  * Information:
  * - Navigate to Web ui tools with the URL below.
  *   - Jenkins:             http://localhost:8080
- *   - Dependency-Track:    http://localhost:8980
+ *   - Dependency-Track:    http://localhost:8981
  *   - Artifactory:         http://localhost:8082
  *   - GitLab:              http://localhost:13000
  * - Navigate to the deployed webapp with the URL below.

@@ -85,8 +85,7 @@ unclassified:
   dependencyTrackPublisher:
     dependencyTrackUrl: "http://dtrack-apiserver:8080"
     dependencyTrackApiKey: "dependency-track-api-key"
-    dependencyTrackAutoCreateProjects: true
-    dependencyTrackFrontendUrl: "http://localhost:8980"
+    dependencyTrackFrontendUrl: "http://localhost:8981"
   jFrogPlatformBuilder:
     allowHttpConnections: true
     jfrogInstances:

@@ -12,7 +12,7 @@ RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/
 ARG ROOT_PASSWORD="password"
 RUN echo "root:$ROOT_PASSWORD" | chpasswd
 
-RUN mkdir /var/run/sshd
+RUN mkdir -p /var/run/sshd
 
 ENTRYPOINT ["/usr/sbin/sshd", "-D"]
 
