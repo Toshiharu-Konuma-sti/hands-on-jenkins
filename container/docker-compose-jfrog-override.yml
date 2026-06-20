@@ -5,6 +5,8 @@ services:
       - internal
 
   artifactory:
+    environment:
+      - JF_SHARED_EXTRAJAVAOPTS=-Dartifactory.onboarding.skipWizard=true
     networks:
       - internal
       - external
