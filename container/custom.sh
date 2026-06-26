@@ -1,46 +1,4 @@
 
-# {{{ get_gitlab_root_password()
-get_gitlab_root_password()
-{
-	GL_PASS=$(docker container exec gitlab cat /etc/gitlab/initial_root_password | \
-		grep "^Password" | \
-		sed -e "s/^Password: //g" | \
-		tee /dev/tty)
-	echo "$GL_PASS"
-}
-# }}}
-
-# {{{ get_gitlab_access_token()
-# $1: GitLab user name
-# $2: GitLab password
-# $3: GitLab host name
-get_gitlab_access_token()
-{
-	GL_USER=$1
-	GL_PASS=$2
-	GL_HOST=$3
-
-	CMD_TOKEN="curl -v -f -X POST
-		-H \"Content-Type: application/json\"
-		-d \"{
-  \\\"grant_type\\\": \\\"password\\\",
-  \\\"username\\\": \\\"${GL_USER}\\\",
-  \\\"password\\\": \\\"${GL_PASS}\\\"
-}\"
-		\"http://${GL_HOST}/oauth/token\""
-
-	GL_BODY=$(loop_curl_until_success "${CMD_TOKEN}")
-
-	GL_TOKEN=$(echo "${GL_BODY}" | \
-		jq -r '.access_token' | \
-		tr -d '\n\r' | \
-		tee /dev/tty)
-
-	echo "$GL_TOKEN"
-}
-# }}}
-
-
 # {{{ create_container()
 # $1: the current directory
 create_container()
@@ -161,6 +119,48 @@ clear_ssh_known_hosts_on_ssh_client()
 # }}}
 
 
+# {{{ get_gitlab_root_password()
+get_gitlab_root_password()
+{
+	GL_PASS=$(docker container exec gitlab cat /etc/gitlab/initial_root_password | \
+		grep "^Password" | \
+		sed -e "s/^Password: //g" | \
+		tee /dev/tty)
+	echo "$GL_PASS"
+}
+# }}}
+
+# {{{ get_gitlab_access_token()
+# $1: GitLab user name
+# $2: GitLab password
+# $3: GitLab host name
+get_gitlab_access_token()
+{
+	GL_USER=$1
+	GL_PASS=$2
+	GL_HOST=$3
+
+	CMD_TOKEN="curl -v -f -X POST
+		-H \"Content-Type: application/json\"
+		-d \"{
+  \\\"grant_type\\\": \\\"password\\\",
+  \\\"username\\\": \\\"${GL_USER}\\\",
+  \\\"password\\\": \\\"${GL_PASS}\\\"
+}\"
+		\"http://${GL_HOST}/oauth/token\""
+
+	GL_BODY=$(loop_curl_until_success "${CMD_TOKEN}")
+
+	GL_TOKEN=$(echo "${GL_BODY}" | \
+		jq -r '.access_token' | \
+		tr -d '\n\r' | \
+		tee /dev/tty)
+
+	echo "$GL_TOKEN"
+}
+# }}}
+
+
 # {{{ get_dependencytrack_yaml()
 # $1: the current directory
 # $2: url
@@ -202,6 +202,27 @@ replace_dtrack_port_number()
 		"${CUR_DIR}/${YAML_FIL}"
 
 	rm -f "${CUR_DIR}/${YAML_FIL}.bak"
+}
+# }}}
+
+# {{{ get_dtrack_access_token()
+# $1: Dependency-Track user name
+# $2: Dependency-Track password
+# $2: Dependency-Track API host name
+get_dtrack_access_token()
+{
+	DT_USER=$1
+	DT_PASS=$2
+	DT_HOST=$3
+
+	CMD_TOKEN="curl -v -X POST
+		-H \"Content-Type: application/x-www-form-urlencoded\"
+		-d \"username=${DT_USER}\"
+		-d \"password=${DT_PASS}\"
+		\"http://${DT_HOST}/api/v1/user/login\""
+	TOKEN=$(loop_curl_until_success "${CMD_TOKEN}")
+
+	echo "${TOKEN}"
 }
 # }}}
 
@@ -460,3 +481,4 @@ Options:
 EOS
 }
 # }}}
+
