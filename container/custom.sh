@@ -1,46 +1,4 @@
 
-# {{{ get_gitlab_root_password()
-get_gitlab_root_password()
-{
-	GL_PASS=$(docker container exec gitlab cat /etc/gitlab/initial_root_password | \
-		grep "^Password" | \
-		sed -e "s/^Password: //g" | \
-		tee /dev/tty)
-	echo "$GL_PASS"
-}
-# }}}
-
-# {{{ get_gitlab_access_token()
-# $1: GitLab user name
-# $2: GitLab password
-# $3: GitLab host name
-get_gitlab_access_token()
-{
-	GL_USER=$1
-	GL_PASS=$2
-	GL_HOST=$3
-
-	CMD_TOKEN="curl -v -f -X POST
-		-H \"Content-Type: application/json\"
-		-d \"{
-  \\\"grant_type\\\": \\\"password\\\",
-  \\\"username\\\": \\\"${GL_USER}\\\",
-  \\\"password\\\": \\\"${GL_PASS}\\\"
-}\"
-		\"http://${GL_HOST}/oauth/token\""
-
-	GL_BODY=$(loop_curl_until_success "${CMD_TOKEN}")
-
-	GL_TOKEN=$(echo "${GL_BODY}" | \
-		jq -r '.access_token' | \
-		tr -d '\n\r' | \
-		tee /dev/tty)
-
-	echo "$GL_TOKEN"
-}
-# }}}
-
-
 # {{{ create_container()
 # $1: the current directory
 create_container()
@@ -161,6 +119,108 @@ clear_ssh_known_hosts_on_ssh_client()
 # }}}
 
 
+# {{{ get_jenkins_cli()
+get_jenkins_cli()
+{
+	echo "\n### START: get a jenkins cli"
+	JK_CLI_PATH=$1
+	JK_HOST=$2
+	JK_CLI_JAR=$3
+	wget -O ${JK_CLI_PATH} http://${JK_HOST}/jnlpJars/${JK_CLI_JAR}
+}
+# }}}
+
+# {{{ remove_jenkins_cli()
+remove_jenkins_cli()
+{
+	echo "\n### START: remove a jenkins cli"
+	JK_CLI_PATH=$1
+	rm -f ${JK_CLI_PATH}
+}
+# }}}
+
+# {{{ listing_jenkins_job_config()
+listing_jenkins_job_config()
+{
+	CUR_DIR=$1
+	FND_DIR="${CUR_DIR}/jenkins/jobs/"
+	PATTERN="config-*.xml"
+	FILE_LIST=$(find "${FND_DIR}" -type f -name "${PATTERN}")
+	echo "${FILE_LIST}"
+}
+# }}}
+
+# {{{ import_jenkins_job()
+import_jenkins_job()
+{
+	JK_CLI_PATH=$1
+	JK_HOST=$2
+	JK_USER=$3
+	JK_PASS=$4
+	JK_JOB_TOKEN=$5
+	F_LIST=$6
+
+	echo "\n### START: create jobs to Jenkins"
+	for F_PATH in ${F_LIST}
+	do
+		JOB_NAME=$(basename "${F_PATH}" | sed 's/^config-//; s/\.xml$//')
+		echo ">>> register the '${JOB_NAME}' job"
+		case "${JOB_NAME}" in
+			build-*)
+				sed "s|<secretToken>.*</secretToken>|<secretToken>${JK_JOB_TOKEN}</secretToken>|" ${F_PATH} | \
+					java -jar ${JK_CLI_PATH} -s http://${JK_HOST}/ -auth ${JK_USER}:${JK_PASS} create-job ${JOB_NAME}
+				;;
+			*)
+				java -jar ${JK_CLI_PATH} -s http://${JK_HOST}/ -auth ${JK_USER}:${JK_PASS} create-job ${JOB_NAME} < ${F_PATH}
+				;;
+		esac
+	done
+}
+# }}}
+
+
+# {{{ get_gitlab_root_password()
+get_gitlab_root_password()
+{
+	GL_PASS=$(docker container exec gitlab cat /etc/gitlab/initial_root_password | \
+		grep "^Password" | \
+		sed -e "s/^Password: //g" | \
+		tee /dev/tty)
+	echo "$GL_PASS"
+}
+# }}}
+
+# {{{ get_gitlab_access_token()
+# $1: GitLab user name
+# $2: GitLab password
+# $3: GitLab host name
+get_gitlab_access_token()
+{
+	GL_USER=$1
+	GL_PASS=$2
+	GL_HOST=$3
+
+	CMD_TOKEN="curl -v -f -X POST
+		-H \"Content-Type: application/json\"
+		-d \"{
+  \\\"grant_type\\\": \\\"password\\\",
+  \\\"username\\\": \\\"${GL_USER}\\\",
+  \\\"password\\\": \\\"${GL_PASS}\\\"
+}\"
+		\"http://${GL_HOST}/oauth/token\""
+
+	GL_BODY=$(loop_curl_until_success "${CMD_TOKEN}")
+
+	GL_TOKEN=$(echo "${GL_BODY}" | \
+		jq -r '.access_token' | \
+		tr -d '\n\r' | \
+		tee /dev/tty)
+
+	echo "$GL_TOKEN"
+}
+# }}}
+
+
 # {{{ get_dependencytrack_yaml()
 # $1: the current directory
 # $2: url
@@ -202,6 +262,54 @@ replace_dtrack_port_number()
 		"${CUR_DIR}/${YAML_FIL}"
 
 	rm -f "${CUR_DIR}/${YAML_FIL}.bak"
+}
+# }}}
+
+# {{{ get_dtrack_access_token()
+# $1: Dependency-Track API host name
+# $2: Dependency-Track user name
+# $3: Dependency-Track password
+get_dtrack_access_token()
+{
+	DT_HOST=$1
+	DT_USER=$2
+	DT_PASS=$3
+
+	CMD_TOKEN="curl -v -X POST
+		-H \"Content-Type: application/x-www-form-urlencoded\"
+		-d \"username=${DT_USER}\"
+		-d \"password=${DT_PASS}\"
+		\"http://${DT_HOST}/api/v1/user/login\""
+	TOKEN=$(loop_curl_until_success "${CMD_TOKEN}")
+
+	echo "${TOKEN}"
+}
+# }}}
+
+# {{{ get_dtrack_team_api_key()
+# $1: Dependency-Track API host name
+# $1: Access Token
+# $3: Team name for getting an API Key
+get_dtrack_team_api_key()
+{
+	DT_HOST=$1
+	DT_TOKEN=$2
+	DT_TEAM=$3
+
+	CMD_TEAM="curl -s -X GET
+		-H \"Authorization: Bearer ${DT_TOKEN}\"
+		\"http://${DT_HOST}/api/v1/team\""
+	BODY_TEAM=$(loop_curl_until_success "${CMD_TEAM}")
+
+	TEAM_UUID=$(echo "${BODY_TEAM}" | jq -r ".[] | select(.name==\"${DT_TEAM}\") | .uuid")
+
+	CMD_API_KEY="curl -s -X PUT
+		-H \"Authorization: Bearer ${DT_TOKEN}\"
+		\"http://${DT_HOST}/api/v1/team/${TEAM_UUID}/key\""
+	BODY_API_KEY=$(loop_curl_until_success "${CMD_API_KEY}")
+	API_KEY=$(echo "${BODY_API_KEY}" | jq -r '.key')
+
+	echo "${API_KEY}"
 }
 # }}}
 
@@ -378,13 +486,11 @@ show_url()
  * Information:
  * - Navigate to Web ui tools with the URL below.
  *   - Jenkins:             http://localhost:8080
- *   - Dependency-Track:    http://localhost:8981
  *   - Artifactory:         http://localhost:8082
  *   - GitLab:              http://localhost:13000
+ *   - Dependency-Track:    http://localhost:8981
  * - Navigate to the deployed webapp with the URL below.
  *   - webapp:              http://localhost:8181
- * - Navigate to the external web service with the URL below.
- *   - Sonatype OSS Index   https://ossindex.sonatype.org
  ***********************************************************/
 EOS
 }
@@ -422,13 +528,9 @@ show_information()
 {
 	echo "- Setup Instructions:"
 	echo "  1. Go to Jenkins and apply JCasC: \e[4m/var/jenkins_home/my-config/jcasc/jenkins.yaml\e[m"
-	echo "  2. Go to Sonatype OSS Index and get it's API Token."
-	echo "  3. Go to Dependency-Track and update Sonatype OSS Index registered email and API Token."
-	echo "  4. Issue an API-Key in Dependency-Track."
-	echo "  5. Go to Jenkins and update it with the API key issued by Dependency-Track."
-	echo "  6. Go to Artifactory and a create local repositories: \e[4mhands-on-rollingdice-webapp-webapi\e[m and \e[4mhands-on-rollingdice-webapp-webui\e[m"
-	echo "  7. Create a remote repository and a virtual repository that links local and remote: \e[4mmaven-central-remote\e[m and \e[4mgradle-virtual\e[m"
-	echo "  8. Run the setup script in the console: \e[4msetup/SETUP_HANDS-ON.sh\e[m"
+	echo "  2. Go to Artifactory and a create local repositories: \e[4mhands-on-rollingdice-webapp-webapi\e[m and \e[4mhands-on-rollingdice-webapp-webui\e[m"
+	echo "  3. Create a remote repository and a virtual repository that links local and remote: \e[4mmaven-central-remote\e[m and \e[4mgradle-virtual\e[m"
+	echo "  4. Run the setup script in the console: \e[4msetup/SETUP_HANDS-ON.sh\e[m"
 	echo "- CI/CD Instructions:"
 	echo "  1. Run the script in the console. It will clone GitLab repository and add the webapp codes: \e[4mtry-my-hand/PREPARE_LOCAL_GIT_REPO_TO_PUSH.sh\e[m"
 	echo "  2. Push a local repository including webapp codes to GitLab."
@@ -460,3 +562,4 @@ Options:
 EOS
 }
 # }}}
+

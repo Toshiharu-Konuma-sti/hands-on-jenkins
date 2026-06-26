@@ -1,5 +1,7 @@
 *.swp
 
+.vscode/
+
 container/.env
 container/.env-webapp-mysql
 container/docker-compose-volumes.yaml
