@@ -266,14 +266,14 @@ replace_dtrack_port_number()
 # }}}
 
 # {{{ get_dtrack_access_token()
-# $1: Dependency-Track user name
-# $2: Dependency-Track password
-# $2: Dependency-Track API host name
+# $1: Dependency-Track API host name
+# $2: Dependency-Track user name
+# $3: Dependency-Track password
 get_dtrack_access_token()
 {
-	DT_USER=$1
-	DT_PASS=$2
-	DT_HOST=$3
+	DT_HOST=$1
+	DT_USER=$2
+	DT_PASS=$3
 
 	CMD_TOKEN="curl -v -X POST
 		-H \"Content-Type: application/x-www-form-urlencoded\"
