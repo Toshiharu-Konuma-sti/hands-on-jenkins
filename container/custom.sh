@@ -286,6 +286,33 @@ get_dtrack_access_token()
 }
 # }}}
 
+# {{{ get_dtrack_team_api_key()
+# $1: Dependency-Track API host name
+# $1: Access Token
+# $3: Team name for getting an API Key
+get_dtrack_team_api_key()
+{
+	DT_HOST=$1
+	DT_TOKEN=$2
+	DT_TEAM=$3
+
+	CMD_TEAM="curl -s -X GET
+		-H \"Authorization: Bearer ${DT_TOKEN}\"
+		\"http://${DT_HOST}/api/v1/team\""
+	BODY_TEAM=$(loop_curl_until_success "${CMD_TEAM}")
+
+	TEAM_UUID=$(echo "${BODY_TEAM}" | jq -r ".[] | select(.name==\"${DT_TEAM}\") | .uuid")
+
+	CMD_API_KEY="curl -s -X PUT
+		-H \"Authorization: Bearer ${DT_TOKEN}\"
+		\"http://${DT_HOST}/api/v1/team/${TEAM_UUID}/key\""
+	BODY_API_KEY=$(loop_curl_until_success "${CMD_API_KEY}")
+	API_KEY=$(echo "${BODY_API_KEY}" | jq -r '.key')
+
+	echo "${API_KEY}"
+}
+# }}}
+
 
 # {{{ get_jfrog_oss_package()
 # $1: the download directory
@@ -459,13 +486,11 @@ show_url()
  * Information:
  * - Navigate to Web ui tools with the URL below.
  *   - Jenkins:             http://localhost:8080
- *   - Dependency-Track:    http://localhost:8981
  *   - Artifactory:         http://localhost:8082
  *   - GitLab:              http://localhost:13000
+ *   - Dependency-Track:    http://localhost:8981
  * - Navigate to the deployed webapp with the URL below.
  *   - webapp:              http://localhost:8181
- * - Navigate to the external web service with the URL below.
- *   - Sonatype OSS Index   https://ossindex.sonatype.org
  ***********************************************************/
 EOS
 }
@@ -503,13 +528,9 @@ show_information()
 {
 	echo "- Setup Instructions:"
 	echo "  1. Go to Jenkins and apply JCasC: \e[4m/var/jenkins_home/my-config/jcasc/jenkins.yaml\e[m"
-	echo "  2. Go to Sonatype OSS Index and get it's API Token."
-	echo "  3. Go to Dependency-Track and update Sonatype OSS Index registered email and API Token."
-	echo "  4. Issue an API-Key in Dependency-Track."
-	echo "  5. Go to Jenkins and update it with the API key issued by Dependency-Track."
-	echo "  6. Go to Artifactory and a create local repositories: \e[4mhands-on-rollingdice-webapp-webapi\e[m and \e[4mhands-on-rollingdice-webapp-webui\e[m"
-	echo "  7. Create a remote repository and a virtual repository that links local and remote: \e[4mmaven-central-remote\e[m and \e[4mgradle-virtual\e[m"
-	echo "  8. Run the setup script in the console: \e[4msetup/SETUP_HANDS-ON.sh\e[m"
+	echo "  2. Go to Artifactory and a create local repositories: \e[4mhands-on-rollingdice-webapp-webapi\e[m and \e[4mhands-on-rollingdice-webapp-webui\e[m"
+	echo "  3. Create a remote repository and a virtual repository that links local and remote: \e[4mmaven-central-remote\e[m and \e[4mgradle-virtual\e[m"
+	echo "  4. Run the setup script in the console: \e[4msetup/SETUP_HANDS-ON.sh\e[m"
 	echo "- CI/CD Instructions:"
 	echo "  1. Run the script in the console. It will clone GitLab repository and add the webapp codes: \e[4mtry-my-hand/PREPARE_LOCAL_GIT_REPO_TO_PUSH.sh\e[m"
 	echo "  2. Push a local repository including webapp codes to GitLab."
@@ -541,6 +562,4 @@ Options:
 EOS
 }
 # }}}
-
-
 

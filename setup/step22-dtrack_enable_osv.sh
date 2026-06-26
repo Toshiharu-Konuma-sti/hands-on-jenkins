@@ -9,7 +9,7 @@ call_show_start_banner
 
 echo "\n### START: get admin's bearer token"
 
-ACCESS_TOKEN=$(get_dtrack_access_token "${DTRK_ADMIN_USER}" "${DTRK_ADMIN_PASS}" "${DTRK_HOST_API}")
+ACCESS_TOKEN=$(get_dtrack_access_token "${DTRK_HOST_API}" "${DTRK_ADMIN_USER}" "${DTRK_ADMIN_PASS}")
 
 echo "\n### START: enable OSV (Maven only) via Extensions API v2"
 
