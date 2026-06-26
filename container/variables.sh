@@ -12,6 +12,7 @@ JENK_HOST_EXT="localhost:8080"
 JENK_HOST_INT="jenkins:8080"
 JENK_USER="admin"
 JENK_PASS="password"
+JENK_CLI_JAR=jenkins-cli.jar
 JENK_JOB_TOKEN="1234567890abcdefghijklmnopqrstuvwxyz"
 
 GITL_USER="root"
