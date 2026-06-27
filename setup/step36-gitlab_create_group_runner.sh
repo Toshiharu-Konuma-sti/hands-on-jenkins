@@ -57,7 +57,7 @@ docker exec gitlab-runner touch /etc/gitlab-runner/config.toml
 docker exec gitlab-runner sh -c '> /etc/gitlab-runner/config.toml'
 
 echo ">>> Register github runner"
-TARGET_CONTAINERS="gitlab dep-track-apiserver artifactory ansible webapp-webapi webapp-webui"
+TARGET_CONTAINERS="gitlab dtrack-apiserver artifactory ansible webapp-webapi webapp-webui"
 EXTRA_HOSTS_OPTS=""
 
 for CONTAINER_NM in ${TARGET_CONTAINERS}; do
