@@ -38,8 +38,9 @@ tool:
       properties:
       - installSource:
           installers:
-          - gradleInstaller:
-              id: "9.0.0"
+          - zip:
+              url: "https://services.gradle.org/distributions/gradle-9.6.0-bin.zip"
+              subdir: "gradle-9.6.0"
   jfrog:
     installations:
     - name: "my-jfrog-cli"
