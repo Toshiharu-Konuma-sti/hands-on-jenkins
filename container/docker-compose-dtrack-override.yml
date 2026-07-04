@@ -5,6 +5,7 @@ services:
     hostname: dtrack-apiserver
     environment:
       EXTRA_JAVA_OPTIONS: "-Xmx4G"
+      DT_DATASOURCE_URL: "jdbc:postgresql://dtrack-postgres:5432/dtrack"
     networks:
       - internal
       - external
