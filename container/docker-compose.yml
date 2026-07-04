@@ -7,13 +7,17 @@ services:
     environment:
       GITLAB_OMNIBUS_CONFIG: |
         external_url 'http://localhost:13000'
+        pages_external_url 'http://localhost:14080'
+        gitlab_pages['enable'] = true
+        gitlab_pages['namespace_in_path'] = true
     volumes:
       - gitlab-config:/etc/gitlab'
       - gitlab-logs:/var/log/gitlab'
       - gitlab-data:/var/opt/gitlab'
     ports:
-      - '13000:13000'
       - '2022:22'
+      - '13000:13000'
+      - '14080:14080'
     networks:
       - internal
       - external
