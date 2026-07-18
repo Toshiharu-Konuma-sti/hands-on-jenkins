@@ -1,4 +1,4 @@
-FROM ubuntu:latest AS base
+FROM ubuntu:26.04 AS base
 
 RUN apt-get update && \
     apt-get install -y sudo openssh-server && \
@@ -7,7 +7,7 @@ RUN apt-get update && \
 
 RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
     sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
-    sed -i 's/UsePAM yes/UsePAM no/' /etc/ssh/sshd_config
+    sed -i 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' /etc/pam.d/sshd
 
 ARG ROOT_PASSWORD="password"
 RUN echo "root:$ROOT_PASSWORD" | chpasswd

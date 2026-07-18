@@ -5,17 +5,6 @@ create_container()
 {
 	CUR_DIR=$1
 	echo "\n### START: Create new containers ##########"
-#	docker volume create --name=artifactory_data
-#	docker volume create --name=postgres_data
-#	docker volume create --name=dtrack-data
-#	docker volume create --name=postgres-data
-#	docker-compose \
-#		-f $CUR_DIR/docker-compose.yml \
-#		-f $CUR_DIR/docker-compose-webapp.yml \
-#		-f $CUR_DIR/docker-compose-volumes.yaml \
-#		-f $CUR_DIR/docker-compose-dependencytrack.yml \
-#		up -d -V --remove-orphans
-
 	docker compose \
 		-f $CUR_DIR/docker-compose.yml \
 		-f $CUR_DIR/docker-compose-webapp.yml \
@@ -41,7 +30,7 @@ create_container_exporter()
 {
 	CUR_DIR=$1
 	echo "\n### START: Create the node exporter containers ##########"
-	docker-compose \
+	docker compose \
 		-f $CUR_DIR/docker-compose-webapp.yml \
 		-f $CUR_DIR/docker-compose-webapp-exporter.yml \
 		up -d
@@ -54,13 +43,6 @@ destory_container()
 {
 	CUR_DIR=$1
 	echo "\n### START: Destory existing containers ##########"
-#	docker-compose \
-#		-f $CUR_DIR/docker-compose.yml \
-#		-f $CUR_DIR/docker-compose-webapp.yml \
-#		-f $CUR_DIR/docker-compose-volumes.yaml \
-#		-f $CUR_DIR/docker-compose-dependencytrack.yml \
-#		down -v --remove-orphans
-
 	docker compose \
 		-f $CUR_DIR/docker-compose-volumes.yaml \
 		-f $CUR_DIR/docker-compose-jfrog-override.yml \
@@ -77,11 +59,6 @@ destory_container()
 		-f $CUR_DIR/docker-compose.common.network.yml \
 		-p devops \
 		down -v --remove-orphans
-
-#	docker volume rm artifactory_data
-#	docker volume rm postgres_data
-#	docker volume rm dtrack-data
-#	docker volume rm postgres-data
 }
 # }}}
 
@@ -97,7 +74,7 @@ rebuild_container()
 	IMAGE_NM=$(docker inspect --format='{{.Config.Image}}' $CONTAINER_NM)
 	docker rm $CONTAINER_NM
 	docker rmi $IMAGE_NM
-	docker-compose \
+	docker compose \
 		-f $CUR_DIR/docker-compose.yml \
 		-f $CUR_DIR/docker-compose-webapp.yml \
 		-f $CUR_DIR/docker-compose.common.network.yml \
