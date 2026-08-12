@@ -106,7 +106,7 @@ pipeline{
         stage(&quot;Generate SBOM&quot;) {
             steps {
                 echo &quot;### START: generate SBOM using CycloneDX plugin&quot;
-                jf &quot;gradle cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
+                jf &quot;gradle cyclonedxBom --info&quot;
             }
         }
         stage(&apos;Publish SBOM to Dependency-Track&apos;) {
@@ -152,7 +152,7 @@ pipeline{
         stage(&quot;Run Unit Tests&quot;){
             steps{
                 echo &quot;### START: run unit tests&quot;
-                jf &quot;gradle test -x cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
+                jf &quot;gradle test -x cyclonedxBom --info&quot;
             }
             post {
                 always {
@@ -203,7 +203,7 @@ pipeline{
         stage(&quot;Analyze test codes coverage&quot;){
             steps{
                 echo &quot;### START: analyze a test code coverage&quot;
-                jf &quot;gradle jacocoTestReport -x cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
+                jf &quot;gradle jacocoTestReport -x cyclonedxBom --info&quot;
             }
             post {
                 always {
@@ -221,7 +221,7 @@ pipeline{
         stage(&quot;Analyze binaries with SpotBugs&quot;){
             steps{
                 echo &quot;### START: analyze binaries with spotbugs&quot;
-                jf &quot;gradle spotbugsMain spotbugsTest -x cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
+                jf &quot;gradle spotbugsMain spotbugsTest -x cyclonedxBom --info&quot;
             }
             post {
                 always {
@@ -234,7 +234,7 @@ pipeline{
         stage(&quot;Analyze codes with PMD&quot;){
             steps{
                 echo &quot;### START: analyze codes with pmd&quot;
-                jf &quot;gradle pmdMain pmdTest -x cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
+                jf &quot;gradle pmdMain pmdTest -x cyclonedxBom --info&quot;
             }
             post {
                 always {
@@ -247,7 +247,7 @@ pipeline{
         stage(&quot;Analyze codes with Checkstyle&quot;){
             steps{
                 echo &quot;### START: analyze codes with checkstyle&quot;
-                jf &quot;gradle checkstyleMain checkstyleTest -x cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
+                jf &quot;gradle checkstyleMain checkstyleTest -x cyclonedxBom --info&quot;
             }
             post {
                 always {
@@ -260,7 +260,7 @@ pipeline{
         stage(&quot;Generate a Javadoc&quot;) {
             steps {
                 echo &quot;### START: generate a javadoc&quot;
-                jf &quot;gradle javadoc -x cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
+                jf &quot;gradle javadoc -x cyclonedxBom --info&quot;
             }
             post {
                 always {

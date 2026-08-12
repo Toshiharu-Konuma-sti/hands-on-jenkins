@@ -41,6 +41,7 @@ services:
     container_name: jenkins
     build:
       context: ./jenkins
+      network: host
     image: hands-on/jenkins:latest
     environment:
       - JAVA_OPTS='-Dhudson.model.DirectoryBrowserSupport.CSP="style-src ''self'' ''unsafe-inline'';"'
