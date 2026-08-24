@@ -1,8 +1,30 @@
+- name: Get folder info from Artifactory
+  ansible.builtin.uri:
+    url: "{{ artifactory_base_url }}/api/storage/{{ artifactory_repo }}/{{ maven_group_path }}/{{ jar_base }}/{{ jar_version | replace('-SNAPSHOT', '') }}"
+    method: GET
+    user: "{{ artifactory_username }}"
+    password: "{{ artifactory_password }}"
+    force_basic_auth: yes
+    validate_certs: no
+    return_content: yes
+  register: folder_info
+
+- name: Set real filename from folder info
+  set_fact:
+    real_jar_filename: "{{ folder_info.json.children | rejectattr('folder') | map(attribute='uri') | select('match', '.*\\.jar$') | list | sort | last | regex_replace('^/', '') }}"
+
+- name: Debug detected filename
+  debug:
+    msg: "Detected latest file: {{ real_jar_filename }}"
+
 - name: Download JAR file from Artifactory
   ansible.builtin.get_url:
-    url: "{{ artifactory_url }}/{{ jar_file }}"
+    url: >-
+      {{ artifactory_url }}/{{ maven_group_path }}/{{ jar_base }}/{{ jar_version | replace('-SNAPSHOT', '') }}/{{ real_jar_filename }}
     dest: "{{ app_dir }}/{{ jar_file }}"
     username: "{{ artifactory_username }}"
     password: "{{ artifactory_password }}"
     mode: '0644'
+    force: yes
     validate_certs: no
+  register: download_result
