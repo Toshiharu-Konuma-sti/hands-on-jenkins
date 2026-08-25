@@ -71,8 +71,9 @@ pipeline{
     environment {
         GIT_REPO_URL = &quot;http://gitlab:13000/my-hands-on-group/webapp-webui.git&quot;
         JAR_FILE_PATTERN = &quot;build/libs/apisl.handson.rollingdice.webapp.webui-*-SNAPSHOT.jar&quot;
-        ARTIFACTORY_REPO = &quot;hands-on-rollingdice-webapp-webui&quot;
-        ARTIFACTORY_VIRTUAL_REPO = &quot;gradle-virtual&quot;
+        ARTIFACTORY_REPO = &quot;hands-on-rollingdice-webapp&quot;
+        ARTIFACT_GROUP_ID = &quot;jp.sios&quot;
+        ARTIFACTORY_VIRTUAL_REPO = &quot;hands-on-virtual&quot;
         SBOM_FILE_PATH = &quot;build/reports/application.cdx.json&quot;
         UNIT_TEST_RESULT_DIR = &quot;build/test-results/test&quot;
         UNIT_TEST_RESULT_EXT = &quot;*.xml&quot;
@@ -273,12 +274,25 @@ pipeline{
             steps {
                 echo &quot;### START: release an artifact to artifactory&quot;
                 script {
+                    def jarFilePath = sh(script: &quot;find . -path &apos;./${env.JAR_FILE_PATTERN}&apos;&quot;, returnStdout: true).trim()
+                    if (jarFilePath.isEmpty()) {
+                        error &quot;JAR file not found with pattern: ${env.JAR_FILE_PATTERN}&quot;
+                    }
+                    def jarFileName = sh(script: &quot;basename &apos;${jarFilePath}&apos;&quot;, returnStdout: true).trim()
+                    def projectInfo = parseJarName(jarFileName)
+                    if (projectInfo == null) {
+                        error &quot;Could not parse project name and version from JAR file: ${jarFileName}&quot;
+                    }
+                    def artifactId = projectInfo[0]
+                    def version = projectInfo[1]
+                    def groupPath = env.ARTIFACT_GROUP_ID.replace(&apos;.&apos;, &apos;/&apos;)
+                    def mavenTarget = &quot;${ARTIFACTORY_REPO}/${groupPath}/${artifactId}/${version}/&quot;
                     def props = &quot;build.name=${ARTIFACTORY_REPO};build.number=${BUILD_NUMBER};${testResultsProps}&quot;
                     def spec = &quot;&quot;&quot;{
                         &quot;files&quot;: [
                             {
                                 &quot;pattern&quot;: &quot;${JAR_FILE_PATTERN}&quot;,
-                                &quot;target&quot;: &quot;${ARTIFACTORY_REPO}&quot;,
+                                &quot;target&quot;: &quot;${mavenTarget}&quot;,
                                 &quot;props&quot;: &quot;${props}&quot;
                             }
                         ]
