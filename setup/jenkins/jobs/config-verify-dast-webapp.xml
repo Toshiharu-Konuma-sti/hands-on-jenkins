@@ -29,6 +29,7 @@
     }
     environment {
         SERVICES_LIST = &quot;webapi,webui&quot;
+        ARTIFACTORY_VIRTUAL_REPO = &quot;hands-on-virtual&quot;
 
         MYSQL_CONTAINER = &quot;zap-mysql&quot;
 		ZAP_CONTAINER_UI = &quot;zap-scan-ui-${BUILD_NUMBER}&quot;
@@ -83,8 +84,9 @@
                     services.each { serviceName -&gt;
                         echo &quot;--- Processing service: ${serviceName} ---&quot;
                         dir(serviceName) {
-                            echo &quot;### [${serviceName}] START: Building with Gradle&quot;
-                            sh &quot;./gradlew assemble -x cyclonedxBom --info&quot;
+                            echo &quot;### [${serviceName}] START: Building with Gradle via Artifactory&quot;
+                            jf &quot;gradle-config --repo-resolve ${ARTIFACTORY_VIRTUAL_REPO}&quot;
+                            jf &quot;gradle assemble -x cyclonedxBom --info&quot;
                         }
                     }
                 }
@@ -97,7 +99,7 @@
                     def serviceName = &quot;webapi&quot;
                     dir(serviceName) {
                         echo &quot;### [${serviceName}] START: Generate a json format OpenAPI&quot;
-                        sh &quot;./gradlew generateOpenApiDocs --no-configuration-cache --info&quot;
+                        jf &quot;gradle generateOpenApiDocs --no-configuration-cache --info&quot;
                     }
                 }
             }
