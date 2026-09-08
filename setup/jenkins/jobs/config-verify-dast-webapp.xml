@@ -92,18 +92,6 @@
                 }
             }
         }
-        stage(&quot;Generate an OpenAPI for OWASP ZAP&quot;){
-            steps{
-                script {
-                    echo &quot;### START: generate an openapi&quot;
-                    def serviceName = &quot;webapi&quot;
-                    dir(serviceName) {
-                        echo &quot;### [${serviceName}] START: Generate a json format OpenAPI&quot;
-                        jf &quot;gradle generateOpenApiDocs --no-configuration-cache --info&quot;
-                    }
-                }
-            }
-        }
         stage(&quot;Start up MySQL container&quot;) {
             steps {
                 script {
@@ -196,10 +184,11 @@
                             docker run --name ${ZAP_CONTAINER_UI} --network ${CONTAINER_NETWORK} \\
                                 -w /zap/wrk \\
                                 -u ${jenkinsUser}:${jenkinsGroup} \\
+                                --memory=1536m --memory-swap=1536m \\
                                 ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \\
                                     -t ${env.ZAP_TARGET_URL_UI} \\
                                     -r ${env.ZAP_REPORT_NAME_UI} -l WARN -d \\
-                                    -z &quot;-config scanner.delayInMs=500 -config spider.threadCount=1&quot;
+                                    -z &quot;-Xmx768m -silent -config scanner.delayInMs=500 -config spider.threadCount=1&quot;
                         &quot;&quot;&quot;
                     } catch (e) {
                         echo &quot;DAST scan to webui found warnings, but proceeding. Marking build as UNSTABLE.&quot;
@@ -249,13 +238,12 @@
                             docker create --name ${ZAP_CONTAINER_API} --network ${CONTAINER_NETWORK} \\
                                 -w /zap/wrk/ \\
                                 -u ${jenkinsUser}:${jenkinsGroup} \\
+                                --memory=1536m --memory-swap=1536m \\
                                 ghcr.io/zaproxy/zaproxy:stable zap-api-scan.py \\
-                                    -t /zap/wrk/openapi.json -f openapi -O ${env.ZAP_TARGET_URL_API} \\
+                                    -t ${env.ZAP_TARGET_URL_API}/v3/api-docs -f openapi \\
                                     -r ${env.ZAP_REPORT_NAME_API} -l WARN -d \\
-                                    -z &quot;-config scanner.delayInMs=500 -config spider.threadCount=1 -config ascan.scanner.defaultPolicy.attackStrength=LOW -config ascan.scanner.defaultPolicy.alertThreshold=HIGH&quot;
+                                    -z &quot;-Xmx768m -silent -config scanner.delayInMs=500 -config spider.threadCount=1 -config ascan.scanner.defaultPolicy.attackStrength=LOW -config ascan.scanner.defaultPolicy.alertThreshold=HIGH&quot;
                         &quot;&quot;&quot;
-                        echo &quot;START: Copying OpenAPI file to OWASP Zap container&quot;
-                        sh &quot;docker cp ${WORKSPACE}/webapi/build/docs/openapi/openapi.json ${ZAP_CONTAINER_API}:/zap/wrk/openapi.json&quot;
                         echo &quot;START: Starting OWASP Zap container&quot;
                         sh &quot;docker start -a ${ZAP_CONTAINER_API}&quot;
                     } catch (e) {
