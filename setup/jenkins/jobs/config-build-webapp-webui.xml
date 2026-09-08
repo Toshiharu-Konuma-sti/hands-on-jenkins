@@ -49,7 +49,7 @@
     </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
   </properties>
   <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">
-    <script>@NonCPS
+    <script><![CDATA[@NonCPS
 def parseJarName(String jarFileName) {
     def matcher = jarFileName =~ /^(.*)-(\d+\.\d+\.\d+)-SNAPSHOT\.jar$/
     if (matcher.matches()) {
@@ -58,85 +58,85 @@ def parseJarName(String jarFileName) {
     return null
 }
 
-def testResultsProps = &quot;&quot;
+def testResultsProps = ""
 
 pipeline{
     agent{
-        label &quot;jenkins-agent&quot;
+        label "jenkins-agent"
     }
     tools {
-        jfrog &quot;my-jfrog-cli&quot;
-        gradle &quot;my-gradle&quot;
+        jfrog "my-jfrog-cli"
+        gradle "my-gradle"
     }
     environment {
-        GIT_REPO_URL = &quot;http://gitlab:13000/my-hands-on-group/webapp-webui.git&quot;
-        JAR_FILE_PATTERN = &quot;build/libs/apisl.handson.rollingdice.webapp.webui-*-SNAPSHOT.jar&quot;
-        ARTIFACTORY_REPO = &quot;hands-on-rollingdice-webapp&quot;
-        ARTIFACT_GROUP_ID = &quot;jp.sios&quot;
-        ARTIFACTORY_VIRTUAL_REPO = &quot;hands-on-virtual&quot;
-        SBOM_FILE_PATH = &quot;build/reports/application.cdx.json&quot;
-        UNIT_TEST_RESULT_DIR = &quot;build/test-results/test&quot;
-        UNIT_TEST_RESULT_EXT = &quot;*.xml&quot;
-        UNIT_TEST_COVERAGE_PATH = &quot;build/reports/jacoco/test/jacocoTestReport.xml&quot;
-        SPOT_BUGS_RESULT_PATTERN = &quot;build/reports/spotbugs/*.xml&quot;
-        PMD_RESULT_PATTERN = &quot;build/reports/pmd/*.xml&quot;
-        CHECK_STYLE_RESULT_PATTERN = &quot;build/reports/checkstyle/*.xml&quot;
-        JAVADOC_DIR = &quot;build/docs/javadoc&quot;
-        DEPENDENCY_TRACK_API_KEY_ID = &quot;dependency-track-api-key&quot;
+        GIT_REPO_URL = "http://gitlab:13000/my-hands-on-group/webapp-webui.git"
+        JAR_FILE_PATTERN = "build/libs/apisl.handson.rollingdice.webapp.webui-*-SNAPSHOT.jar"
+        ARTIFACTORY_REPO = "hands-on-rollingdice-webapp"
+        ARTIFACT_GROUP_ID = "jp.sios"
+        ARTIFACTORY_VIRTUAL_REPO = "hands-on-virtual"
+        SBOM_FILE_PATH = "build/reports/application.cdx.json"
+        UNIT_TEST_RESULT_DIR = "build/test-results/test"
+        UNIT_TEST_RESULT_EXT = "*.xml"
+        UNIT_TEST_COVERAGE_PATH = "build/reports/jacoco/test/jacocoTestReport.xml"
+        SPOT_BUGS_RESULT_PATTERN = "build/reports/spotbugs/*.xml"
+        PMD_RESULT_PATTERN = "build/reports/pmd/*.xml"
+        CHECK_STYLE_RESULT_PATTERN = "build/reports/checkstyle/*.xml"
+        JAVADOC_DIR = "build/docs/javadoc"
+        DEPENDENCY_TRACK_API_KEY_ID = "dependency-track-api-key"
     }
     stages{
-//        stage(&quot;Clean up a local environment&quot;){
+//        stage("Clean up a local environment"){
 //            steps{
-//                echo &quot;### START: clean up the cloned directoy&quot;
+//                echo "### START: clean up the cloned directoy"
 //                deleteDir()
 //            }
 //        }
-        stage(&quot;Checkout a repository from GitLab&quot;){
+        stage("Checkout a repository from GitLab"){
             steps{
-               echo &quot;### START: clone a repository from GitLab&quot;
-               git branch: &quot;main&quot;, url: &quot;${env.GIT_REPO_URL}&quot;
+               echo "### START: clone a repository from GitLab"
+               git branch: "main", url: "${env.GIT_REPO_URL}"
             }
         }
-        stage(&apos;Build a repository with JFrog CLI&apos;) {
+        stage('Build a repository with JFrog CLI') {
             steps {
-                echo &quot;### START: build with jfrog cli&quot;
-                jf &quot;gradle-config --repo-deploy ${ARTIFACTORY_REPO} --repo-resolve ${ARTIFACTORY_VIRTUAL_REPO}&quot;
-                jf &quot;gradle assemble -x cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}&quot;
+                echo "### START: build with jfrog cli"
+                jf "gradle-config --repo-deploy ${ARTIFACTORY_REPO} --repo-resolve ${ARTIFACTORY_VIRTUAL_REPO}"
+                jf "gradle assemble -x cyclonedxBom --info --build-name=${ARTIFACTORY_REPO} --build-number=${BUILD_NUMBER}"
             }
         }
-        stage(&quot;Generate SBOM&quot;) {
+        stage("Generate SBOM") {
             steps {
-                echo &quot;### START: generate SBOM using CycloneDX plugin&quot;
-                jf &quot;gradle cyclonedxBom --info&quot;
+                echo "### START: generate SBOM using CycloneDX plugin"
+                jf "gradle cyclonedxBom --info"
             }
         }
-        stage(&apos;Publish SBOM to Dependency-Track&apos;) {
+        stage('Publish SBOM to Dependency-Track') {
             steps {
-                echo &quot;### START: publich SBOM to Dependency-Track&quot;
+                echo "### START: publich SBOM to Dependency-Track"
                 script {
                     // 1. Get the full path of the JAR files that match a pattern.
-                    def jarFilePath = sh(script: &quot;find . -path &apos;./${env.JAR_FILE_PATTERN}&apos;&quot;, returnStdout: true).trim()
+                    def jarFilePath = sh(script: "find . -path './${env.JAR_FILE_PATTERN}'", returnStdout: true).trim()
                     if (jarFilePath.isEmpty()) {
-                        error &quot;JAR file not found with pattern: ${env.JAR_FILE_PATTERN}&quot;
+                        error "JAR file not found with pattern: ${env.JAR_FILE_PATTERN}"
                     }
                   
                     // 2. Extract only the file name from the full path.
-                    def jarFileName = sh(script: &quot;basename &apos;${jarFilePath}&apos;&quot;, returnStdout: true).trim()
-                    echo &quot;Found JAR file: ${jarFileName}&quot;
+                    def jarFileName = sh(script: "basename '${jarFilePath}'", returnStdout: true).trim()
+                    echo "Found JAR file: ${jarFileName}"
                     
                     // 3. Extract project name and version using regular expressions.
                     def projectInfo = parseJarName(jarFileName)
                     if (projectInfo == null) {
-                        error &quot;Could not parse project name and version from JAR file: ${jarFileName}&quot;
+                        error "Could not parse project name and version from JAR file: ${jarFileName}"
                     }
 
                     def parsedProjectName = projectInfo[0]
                     def parsedProjectVersion = projectInfo[1]
-                    echo &quot;Parsed Project Name: ${parsedProjectName}&quot;
-                    echo &quot;Parsed Project Version: ${parsedProjectVersion}&quot;
+                    echo "Parsed Project Name: ${parsedProjectName}"
+                    echo "Parsed Project Version: ${parsedProjectVersion}"
                   
-                    withCredentials([string(credentialsId: &quot;${env.DEPENDENCY_TRACK_API_KEY_ID}&quot;, variable: &apos;API_KEY&apos;)]) {
-                        dependencyTrackPublisher artifact: &quot;${env.SBOM_FILE_PATH}&quot;,
+                    withCredentials([string(credentialsId: "${env.DEPENDENCY_TRACK_API_KEY_ID}", variable: 'API_KEY')]) {
+                        dependencyTrackPublisher artifact: "${env.SBOM_FILE_PATH}",
                             projectName: parsedProjectName,
                             projectVersion: parsedProjectVersion,
                             synchronous: true,
@@ -146,18 +146,18 @@ pipeline{
             }
             post {
                 success {
-                    archiveArtifacts artifacts: &quot;${env.SBOM_FILE_PATH}&quot;, allowEmptyArchive: true
+                    archiveArtifacts artifacts: "${env.SBOM_FILE_PATH}", allowEmptyArchive: true
                 }
             }
         }
-        stage(&quot;Run Unit Tests&quot;){
+        stage("Run Unit Tests"){
             steps{
-                echo &quot;### START: run unit tests&quot;
-                jf &quot;gradle test -x cyclonedxBom --info&quot;
+                echo "### START: run unit tests"
+                jf "gradle test -x cyclonedxBom --info"
             }
             post {
                 always {
-                    junit &quot;${env.UNIT_TEST_RESULT_DIR}/${env.UNIT_TEST_RESULT_EXT}&quot;
+                    junit "${env.UNIT_TEST_RESULT_DIR}/${env.UNIT_TEST_RESULT_EXT}"
                     script {
                         try {
                             def totalTests = 0
@@ -165,21 +165,21 @@ pipeline{
                             def erroredTests = 0
                             def skippedTests = 0
                             
-                            def testFilesOutput = sh(script: &quot;find ${env.UNIT_TEST_RESULT_DIR} -name &apos;${env.UNIT_TEST_RESULT_EXT}&apos;&quot;, returnStdout: true).trim()
+                            def testFilesOutput = sh(script: "find ${env.UNIT_TEST_RESULT_DIR} -name '${env.UNIT_TEST_RESULT_EXT}'", returnStdout: true).trim()
                             
                             if (testFilesOutput.isEmpty()) {
-                                echo &quot;No JUnit test result files found.&quot;
-                                testResultsProps = &quot;tests.status=no-results&quot;
+                                echo "No JUnit test result files found."
+                                testResultsProps = "tests.status=no-results"
                             } else {
-                                def testFiles = testFilesOutput.split(&quot;\\n&quot;)
-                                testFiles.each { filePath -&gt;
+                                def testFiles = testFilesOutput.split("\\n")
+                                testFiles.each { filePath ->
                                     if (fileExists(filePath)) {
                                         // extract all necessary attribute values from the testsuite tag using the awk command
-                                        // get as a comma-separated string in the order &quot;tests,failures,errors,skipped&quot;
-                                        def awkCommand = &quot;awk -F&apos;\&quot;&apos; &apos;/&lt;testsuite/ {for(i=1;i&lt;=NF;i++){if(\$i~/tests=\$/){t=\$(i+1)} if(\$i~/failures=\$/){f=\$(i+1)} if(\$i~/errors=\$/){e=\$(i+1)} if(\$i~/skipped=\$/){s=\$(i+1)}} printf \&quot;%d,%d,%d,%d\&quot;, t, f, e, s}&apos;&quot;
-                                        def countsStr = sh(script: &quot;${awkCommand} &apos;${filePath}&apos;&quot;, returnStdout: true).trim()
+                                        // get as a comma-separated string in the order "tests,failures,errors,skipped"
+                                        def awkCommand = "awk -F'\"' '/<testsuite/ {for(i=1;i<=NF;i++){if(\$i~/tests=\$/){t=\$(i+1)} if(\$i~/failures=\$/){f=\$(i+1)} if(\$i~/errors=\$/){e=\$(i+1)} if(\$i~/skipped=\$/){s=\$(i+1)}} printf \"%d,%d,%d,%d\", t, f, e, s}'"
+                                        def countsStr = sh(script: "${awkCommand} '${filePath}'", returnStdout: true).trim()
                                         
-                                        def counts = countsStr.split(&quot;,&quot;)
+                                        def counts = countsStr.split(",")
                                         if (counts.size() == 4) {
                                             totalTests += counts[0].toInteger()
                                             failedTests += counts[1].toInteger() // failures
@@ -190,137 +190,137 @@ pipeline{
                                 }
                                 
                                 def passedTests = totalTests - failedTests - erroredTests - skippedTests
-                                testResultsProps = &quot;tests.total=${totalTests};tests.passed=${passedTests};tests.failed=${failedTests};tests.errored=${erroredTests};tests.skipped=${skippedTests}&quot;
-                                echo &quot;Generated test result properties for Artifactory: ${testResultsProps}&quot;
+                                testResultsProps = "tests.total=${totalTests};tests.passed=${passedTests};tests.failed=${failedTests};tests.errored=${erroredTests};tests.skipped=${skippedTests}"
+                                echo "Generated test result properties for Artifactory: ${testResultsProps}"
                             }
                         } catch (e) {
-                            echo &quot;Could not parse JUnit test results. Skipping property attachment. Error: ${e.message}&quot;
-                            testResultsProps = &quot;tests.status=unavailable&quot;
+                            echo "Could not parse JUnit test results. Skipping property attachment. Error: ${e.message}"
+                            testResultsProps = "tests.status=unavailable"
                         }
                     }
                 }
             }
         }
-        stage(&quot;Analyze test codes coverage&quot;){
+        stage("Analyze test codes coverage"){
             steps{
-                echo &quot;### START: analyze a test code coverage&quot;
-                jf &quot;gradle jacocoTestReport -x cyclonedxBom --info&quot;
+                echo "### START: analyze a test code coverage"
+                jf "gradle jacocoTestReport -x cyclonedxBom --info"
             }
             post {
                 always {
                     recordCoverage(
-                        tools: [[parser: &quot;JACOCO&quot;, pattern: &quot;${env.UNIT_TEST_COVERAGE_PATH}&quot;]],
-                        id: &quot;jacoco&quot;, name: &quot;JaCoCo Coverage&quot;,
-                        sourceCodeRetention: &quot;EVERY_BUILD&quot;,
+                        tools: [[parser: "JACOCO", pattern: "${env.UNIT_TEST_COVERAGE_PATH}"]],
+                        id: "jacoco", name: "JaCoCo Coverage",
+                        sourceCodeRetention: "EVERY_BUILD",
                         qualityGates: [
-                            [threshold: 60.0, metric: &quot;LINE&quot;, baseline: &quot;PROJECT&quot;, unstable: true],
-                            [threshold: 60.0, metric: &quot;BRANCH&quot;, baseline: &quot;PROJECT&quot;, unstable: true]]
+                            [threshold: 60.0, metric: "LINE", baseline: "PROJECT", unstable: true],
+                            [threshold: 60.0, metric: "BRANCH", baseline: "PROJECT", unstable: true]]
                     )
                 }
             }
         }
-        stage(&quot;Analyze binaries with SpotBugs&quot;){
+        stage("Analyze binaries with SpotBugs"){
             steps{
-                echo &quot;### START: analyze binaries with spotbugs&quot;
-                jf &quot;gradle spotbugsMain spotbugsTest -x cyclonedxBom --info&quot;
+                echo "### START: analyze binaries with spotbugs"
+                jf "gradle spotbugsMain spotbugsTest -x cyclonedxBom --info"
             }
             post {
                 always {
                     recordIssues tools: [
-                        spotBugs(pattern: &quot;${env.SPOT_BUGS_RESULT_PATTERN}&quot;)
+                        spotBugs(pattern: "${env.SPOT_BUGS_RESULT_PATTERN}")
                     ]
                 }
             }
         }
-        stage(&quot;Analyze codes with PMD&quot;){
+        stage("Analyze codes with PMD"){
             steps{
-                echo &quot;### START: analyze codes with pmd&quot;
-                jf &quot;gradle pmdMain pmdTest -x cyclonedxBom --info&quot;
+                echo "### START: analyze codes with pmd"
+                jf "gradle pmdMain pmdTest -x cyclonedxBom --info"
             }
             post {
                 always {
                     recordIssues tools: [
-                        pmdParser(pattern: &quot;${env.PMD_RESULT_PATTERN}&quot;)
+                        pmdParser(pattern: "${env.PMD_RESULT_PATTERN}")
                     ]
                 }
             }
         }
-        stage(&quot;Analyze codes with Checkstyle&quot;){
+        stage("Analyze codes with Checkstyle"){
             steps{
-                echo &quot;### START: analyze codes with checkstyle&quot;
-                jf &quot;gradle checkstyleMain checkstyleTest -x cyclonedxBom --info&quot;
+                echo "### START: analyze codes with checkstyle"
+                jf "gradle checkstyleMain checkstyleTest -x cyclonedxBom --info"
             }
             post {
                 always {
                     recordIssues tools: [
-                        checkStyle(pattern: &quot;${env.CHECK_STYLE_RESULT_PATTERN}&quot;)
+                        checkStyle(pattern: "${env.CHECK_STYLE_RESULT_PATTERN}")
                     ]
                 }
             }
         }
-        stage(&quot;Generate a Javadoc&quot;) {
+        stage("Generate a Javadoc") {
             steps {
-                echo &quot;### START: generate a javadoc&quot;
-                jf &quot;gradle javadoc -x cyclonedxBom --info&quot;
+                echo "### START: generate a javadoc"
+                jf "gradle javadoc -x cyclonedxBom --info"
             }
             post {
                 always {
-                    echo &quot;### START: publish a javadoc using javadoc plugin&quot;
-                    javadoc javadocDir: &quot;${env.JAVADOC_DIR}&quot;, keepAll: true
+                    echo "### START: publish a javadoc using javadoc plugin"
+                    javadoc javadocDir: "${env.JAVADOC_DIR}", keepAll: true
                 }
             }
         }
-        stage(&quot;Release an artifact to Artifactory&quot;) {
+        stage("Release an artifact to Artifactory") {
             steps {
-                echo &quot;### START: release an artifact to artifactory&quot;
+                echo "### START: release an artifact to artifactory"
                 script {
-                    def jarFilePath = sh(script: &quot;find . -path &apos;./${env.JAR_FILE_PATTERN}&apos;&quot;, returnStdout: true).trim()
+                    def jarFilePath = sh(script: "find . -path './${env.JAR_FILE_PATTERN}'", returnStdout: true).trim()
                     if (jarFilePath.isEmpty()) {
-                        error &quot;JAR file not found with pattern: ${env.JAR_FILE_PATTERN}&quot;
+                        error "JAR file not found with pattern: ${env.JAR_FILE_PATTERN}"
                     }
-                    def jarFileName = sh(script: &quot;basename &apos;${jarFilePath}&apos;&quot;, returnStdout: true).trim()
+                    def jarFileName = sh(script: "basename '${jarFilePath}'", returnStdout: true).trim()
                     def projectInfo = parseJarName(jarFileName)
                     if (projectInfo == null) {
-                        error &quot;Could not parse project name and version from JAR file: ${jarFileName}&quot;
+                        error "Could not parse project name and version from JAR file: ${jarFileName}"
                     }
                     def artifactId = projectInfo[0]
                     def version = projectInfo[1]
-                    def groupPath = env.ARTIFACT_GROUP_ID.replace(&apos;.&apos;, &apos;/&apos;)
-                    def mavenTarget = &quot;${ARTIFACTORY_REPO}/${groupPath}/${artifactId}/${version}/&quot;
-                    def props = &quot;build.name=${ARTIFACTORY_REPO};build.number=${BUILD_NUMBER};${testResultsProps}&quot;
-                    def spec = &quot;&quot;&quot;{
-                        &quot;files&quot;: [
+                    def groupPath = env.ARTIFACT_GROUP_ID.replace('.', '/')
+                    def mavenTarget = "${ARTIFACTORY_REPO}/${groupPath}/${artifactId}/${version}/"
+                    def props = "build.name=${ARTIFACTORY_REPO};build.number=${BUILD_NUMBER};${testResultsProps}"
+                    def spec = """{
+                        "files": [
                             {
-                                &quot;pattern&quot;: &quot;${JAR_FILE_PATTERN}&quot;,
-                                &quot;target&quot;: &quot;${mavenTarget}&quot;,
-                                &quot;props&quot;: &quot;${props}&quot;
+                                "pattern": "${JAR_FILE_PATTERN}",
+                                "target": "${mavenTarget}",
+                                "props": "${props}"
                             }
                         ]
-                    }&quot;&quot;&quot;
-                    writeFile file: &quot;upload.spec&quot;, text: spec
-                    jf &quot;rt u --spec=upload.spec&quot;
+                    }"""
+                    writeFile file: "upload.spec", text: spec
+                    jf "rt u --spec=upload.spec"
                 }
             }
         }
-        stage(&quot;Publish a build info to Artifactory&quot;) {
+        stage("Publish a build info to Artifactory") {
             steps {
-                echo &quot;### START: publish a build info to Artifactory&quot;
-                jf &quot;rt build-publish ${ARTIFACTORY_REPO} ${BUILD_NUMBER}&quot;
+                echo "### START: publish a build info to Artifactory"
+                jf "rt build-publish ${ARTIFACTORY_REPO} ${BUILD_NUMBER}"
             }
         }
     }
     post{
         always{
-            echo &quot;========always========&quot;
+            echo "========always========"
         }
         success{
-            echo &quot;========pipeline executed successfully ========&quot;
+            echo "========pipeline executed successfully ========"
         }
         failure{
-            echo &quot;========pipeline execution failed========&quot;
+            echo "========pipeline execution failed========"
         }
     }
-}</script>
+}]]></script>
     <sandbox>true</sandbox>
   </definition>
   <triggers/>

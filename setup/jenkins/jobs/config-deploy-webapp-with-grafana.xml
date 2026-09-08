@@ -19,56 +19,56 @@
     </com.dabsquared.gitlabjenkins.connection.GitLabConnectionProperty>
   </properties>
   <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">
-    <script>pipeline{
+    <script><![CDATA[pipeline{
     agent{
-        label &quot;ansible&quot;
+        label "ansible"
     }
     stages{
-        stage(&quot;Set up a credential to an environment variable&quot;) {
+        stage("Set up a credential to an environment variable") {
             steps{
                 script{
-                    echo &quot;### START: setting up a credential to an environment variable&quot;
+                    echo "### START: setting up a credential to an environment variable"
                     withCredentials([
                         usernamePassword(
-                            credentialsId: &quot;artifactory-app-credential&quot;,
-                            usernameVariable: &quot;ARTIFACTORY_USERNAME&quot;,
-                            passwordVariable: &quot;ARTIFACTORY_PASSWORD&quot;)
+                            credentialsId: "artifactory-app-credential",
+                            usernameVariable: "ARTIFACTORY_USERNAME",
+                            passwordVariable: "ARTIFACTORY_PASSWORD")
                     ]){
                         try{
-                            env.ARTIFACTORY_USERNAME = &quot;${ARTIFACTORY_USERNAME}&quot;
-                            env.ARTIFACTORY_PASSWORD = &quot;${ARTIFACTORY_PASSWORD}&quot;
+                            env.ARTIFACTORY_USERNAME = "${ARTIFACTORY_USERNAME}"
+                            env.ARTIFACTORY_PASSWORD = "${ARTIFACTORY_PASSWORD}"
                         } catch(Exception e){
-                            error &quot;setting up a credential failed: ${e.message}&quot;
+                            error "setting up a credential failed: ${e.message}"
                         }
                     }
                 }
             }
         }
-        stage(&quot;Run Ansible Playbook on Ansible Agent to webapi&quot;) {
+        stage("Run Ansible Playbook on Ansible Agent to webapi") {
             steps{
-                echo &quot;### START: running ansible playbook for grafana environment on ansible node to webapi&quot;
-                sh &quot;ansible-playbook -i /root/ansible/playbook/inventory_webapi.ini /root/ansible/playbook/deploy_webapi-artf-with-grafana.yml&quot;
+                echo "### START: running ansible playbook for grafana environment on ansible node to webapi"
+                sh "ansible-playbook -i /root/ansible/playbook/inventory_webapi.ini /root/ansible/playbook/deploy_webapi-artf-with-grafana.yml"
             }
         }
-        stage(&quot;Run Ansible Playbook on Ansible Agent to webui&quot;) {
+        stage("Run Ansible Playbook on Ansible Agent to webui") {
             steps{
-                echo &quot;### START: running ansible playbook for grafana environment on ansible node to webui&quot;
-                sh &quot;ansible-playbook -i /root/ansible/playbook/inventory_webui.ini /root/ansible/playbook/deploy_webui-artf-with-grafana.yml&quot;
+                echo "### START: running ansible playbook for grafana environment on ansible node to webui"
+                sh "ansible-playbook -i /root/ansible/playbook/inventory_webui.ini /root/ansible/playbook/deploy_webui-artf-with-grafana.yml"
             }
         }
     }
     post{
         always{
-            echo &quot;========always========&quot;
+            echo "========always========"
         }
         success{
-            echo &quot;========pipeline executed successfully ========&quot;
+            echo "========pipeline executed successfully ========"
         }
         failure{
-            echo &quot;========pipeline execution failed========&quot;
+            echo "========pipeline execution failed========"
         }
     }
-}</script>
+}]]></script>
     <sandbox>true</sandbox>
   </definition>
   <triggers/>
