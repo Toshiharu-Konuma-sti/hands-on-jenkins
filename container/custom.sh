@@ -504,7 +504,7 @@ EOS
 show_information()
 {
 	echo "- Setup Instructions:"
-	echo "  1. Go to Jenkins and apply JCasC: \e[4m/var/jenkins_home/my-config/jcasc/jenkins.yaml\e[m"
+	echo "  1. Go to Jenkins and run the initial setup wizard."
 	echo "  2. Go to Artifactory and create repositories:"
 	echo "    - Local repository:   \e[4mhands-on-rollingdice-webapp\e[m"
 	echo "    - Remote repository:  \e[4mhands-on-remote\e[m"

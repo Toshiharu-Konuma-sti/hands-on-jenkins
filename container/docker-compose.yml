@@ -45,6 +45,7 @@ services:
     image: hands-on/jenkins:latest
     environment:
       - JAVA_OPTS='-Dhudson.model.DirectoryBrowserSupport.CSP="style-src ''self'' ''unsafe-inline'';"'
+      - CASC_JENKINS_CONFIG=/var/jenkins_home/my-config/jcasc/jenkins.yaml
     volumes:
       - ./jenkins/my-config:/var/jenkins_home/my-config:ro
     ports:
