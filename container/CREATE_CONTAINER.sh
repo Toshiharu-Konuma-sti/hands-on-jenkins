@@ -70,6 +70,9 @@ case "$1" in
 		clear
 		show_list_container
 		;;
+	"mem")
+		docker stats --no-stream
+		;;
 	"info")
 		show_url
 		show_password
