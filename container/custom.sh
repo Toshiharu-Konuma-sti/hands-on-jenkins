@@ -536,6 +536,7 @@ Options:
   rebuild {container}   Stop the specified container, removes its image, and
                         restarts it.
   list                  Show the list of containers.
+  mem                   Show the memory usage of the containers.
   info                  Show the information such as URLs.
 
 EOS
