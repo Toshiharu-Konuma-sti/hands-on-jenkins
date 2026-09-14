@@ -1,11 +1,14 @@
 configuration-as-code
 ssh-credentials
+ssh-slaves
 gitlab-plugin
 pipeline-stage-view
+pipeline-graph-view
 coverage
 warnings-ng
 javadoc
 generic-tool
+gradle
 jfrog
 dependency-track
 htmlpublisher

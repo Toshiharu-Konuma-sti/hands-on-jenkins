@@ -504,7 +504,7 @@ EOS
 show_information()
 {
 	echo "- Setup Instructions:"
-	echo "  1. Go to Jenkins and apply JCasC: \e[4m/var/jenkins_home/my-config/jcasc/jenkins.yaml\e[m"
+	echo "  1. Go to Jenkins and run the initial setup wizard."
 	echo "  2. Go to Artifactory and create repositories:"
 	echo "    - Local repository:   \e[4mhands-on-rollingdice-webapp\e[m"
 	echo "    - Remote repository:  \e[4mhands-on-remote\e[m"
@@ -536,6 +536,7 @@ Options:
   rebuild {container}   Stop the specified container, removes its image, and
                         restarts it.
   list                  Show the list of containers.
+  mem                   Show the memory usage of the containers.
   info                  Show the information such as URLs.
 
 EOS

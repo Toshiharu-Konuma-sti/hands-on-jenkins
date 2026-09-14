@@ -10,6 +10,16 @@ services:
         pages_external_url 'http://localhost:14080'
         gitlab_pages['enable'] = true
         gitlab_pages['namespace_in_path'] = true
+        # Reduce memory usage for the demo environment.
+        prometheus_monitoring['enable'] = false
+        puma['worker_processes'] = 0
+        sidekiq['max_concurrency'] = 10
+        postgresql['shared_buffers'] = "256MB"
+        gitlab_rails['env'] = { 'MALLOC_ARENA_MAX' => '2' }
+    deploy:
+      resources:
+        limits:
+          memory: 3g
     volumes:
       - gitlab-config:/etc/gitlab'
       - gitlab-logs:/var/log/gitlab'
@@ -44,7 +54,12 @@ services:
       network: host
     image: hands-on/jenkins:latest
     environment:
-      - JAVA_OPTS='-Dhudson.model.DirectoryBrowserSupport.CSP="style-src ''self'' ''unsafe-inline'';"'
+      - JAVA_OPTS='-Dhudson.model.DirectoryBrowserSupport.CSP="style-src ''self'' ''unsafe-inline'';" -Xmx1024m -Xms512m'
+      - CASC_JENKINS_CONFIG=/var/jenkins_home/my-config/jcasc/jenkins.yaml
+    deploy:
+      resources:
+        limits:
+          memory: 1536m
     volumes:
       - ./jenkins/my-config:/var/jenkins_home/my-config:ro
     ports:
